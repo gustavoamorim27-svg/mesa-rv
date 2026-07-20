@@ -1930,9 +1930,101 @@ function injectRVButton(){
   head.appendChild(b);
 }
 
+/* ================= COMPARADOR (histórico real) ================= */
+var CMPMAP={
+  ibov:{s:'^BVSP'}, ifix:{s:'IFIX.SA'}, smll:{s:'SMAL11.SA'}, usd:{s:'USDBRL=X'},
+  sp500:{s:'^GSPC',usd:1}, qqq:{s:'QQQ',usd:1}, gold:{s:'GC=F',usd:1}, btc:{s:'BTC-USD',usd:1},
+  dow:{s:'^DJI',usd:1}, silver:{s:'SI=F',usd:1}, brent:{s:'BZ=F',usd:1}, wti:{s:'CL=F',usd:1},
+  iron:{s:'TIO=F',usd:1}, coffee:{s:'KC=F',usd:1}, soy:{s:'ZS=F',usd:1}, corn:{s:'ZC=F',usd:1},
+  cattle:{s:'LE=F',usd:1}, dax:{s:'^GDAXI',fxs:'EURBRL=X'}, eurostoxx:{s:'^STOXX50E',fxs:'EURBRL=X'},
+  nikkei:{s:'^N225',fxs:'JPYBRL=X'},
+  itub4:{s:'ITUB4.SA'}, petr4:{s:'PETR4.SA'}, vale3:{s:'VALE3.SA'}, wege3:{s:'WEGE3.SA'},
+  bpac11:{s:'BPAC11.SA'}, bbas3:{s:'BBAS3.SA'}, suzb3:{s:'SUZB3.SA'}, prio3:{s:'PRIO3.SA'},
+  cdi:{bcbId:4391}, ipca:{bcbId:433}
+};
+var CMPHIST={};
+async function fetchCmpSeries(id,years){
+  var m=CMPMAP[id]; if(!m) return null;
+  if(m.bcbId){                                   /* CDI / IPCA: índice acumulado do BCB */
+    var arr=await bcb(m.bcbId, years*12+2);
+    if(!arr||!arr.length) return null;
+    var v=100, out=[100];
+    arr.forEach(function(x){ if(isFinite(x.v)){ v=v*(1+x.v/100); out.push(v); } });
+    return out;
+  }
+  var range=Math.max(1,Math.min(20,years))+'y';
+  var d=await yChart(m.s,range,'1mo');
+  if(!d||!d.closes||d.closes.length<3) return null;
+  var vals=d.closes.slice();
+  if(d.price) vals[vals.length-1]=d.price;
+  var fxs=m.usd?'USDBRL=X':(m.fxs||null);
+  if(fxs){                                       /* converte para reais */
+    var fx=await yChart(fxs,range,'1mo');
+    if(fx&&fx.closes&&fx.closes.length>2){
+      var fv=fx.closes.slice(); if(fx.price) fv[fv.length-1]=fx.price;
+      var n=Math.min(vals.length,fv.length);
+      vals=vals.slice(-n).map(function(x,i){ return x*fv[fv.length-n+i]; });
+    }
+  }
+  return vals;
+}
+/* usa a série real quando disponível; senão mantém a simulação original */
+if(typeof window.series==='function'){
+  var _series=window.series;
+  window.series=function(a,months){
+    try{
+      var h=CMPHIST[a.id];
+      if(h&&h.length>2){
+        var sl=h.slice(-(months+1)), b=sl[0];
+        if(b>0&&isFinite(b)) return sl.map(function(v){ return v/b*100; });
+      }
+    }catch(e){}
+    return _series(a,months);
+  };
+}
+var CMP_BUSY=false;
+async function ensureCmp(){
+  if(CMP_BUSY||typeof cmpSel==='undefined') return;
+  var ids=Array.from(cmpSel);
+  var need=ids.filter(function(i){ return CMPMAP[i] && (!CMPHIST[i]||CMPHIST[i].__y<cmpYears); });
+  var st=document.getElementById('cmpStatus');
+  if(!need.length){ if(st) st.textContent=''; return; }
+  CMP_BUSY=true;
+  if(st) st.textContent='carregando histórico real de '+need.length+' ativo(s)…';
+  var res=await pool(need,3,function(i){ return fetchCmpSeries(i,cmpYears); });
+  var okN=0;
+  need.forEach(function(i,k){ if(res[k]&&res[k].length>2){ res[k].__y=cmpYears; CMPHIST[i]=res[k]; okN++; } });
+  CMP_BUSY=false;
+  if(st){
+    var falt=ids.filter(function(i){ return !CMPHIST[i]; });
+    st.innerHTML = falt.length
+      ? 'Histórico real carregado. Sem série pública para: <b>'+falt.join(', ')+'</b> (esses seguem simulados).'
+      : 'Histórico real (Yahoo Finance / Banco Central) — atualizado às '+hhmm()+'.';
+  }
+  try{ drawCmp(); }catch(e){}
+}
+function injectCmpStatus(){
+  if(document.getElementById('cmpStatus')) return;
+  var host=document.querySelector('.panel[data-p="comparador"] .page-head');
+  if(!host) return;
+  var p=document.createElement('p');
+  p.id='cmpStatus'; p.style.cssText='margin:6px 0 0;font-size:12px;color:#a2a2a2;flex-basis:100%';
+  host.appendChild(p);
+}
+/* re-carrega ao trocar ativos ou período */
+if(typeof window.togglePk==='function'){
+  var _tog=window.togglePk;
+  window.togglePk=function(id){ _tog(id); setTimeout(ensureCmp,10); };
+}
+(function(){
+  var per=document.getElementById('cmpPeriod');
+  if(per) per.addEventListener('click',function(){ setTimeout(ensureCmp,10); });
+})();
+
 /* ================= inicialização / lazy por aba ================= */
 function boot(){
   injectRVButton();
+  injectCmpStatus();
   loadMercados();          /* aba inicial mostra Notícias, mas Mercados é barato */
   loadNoticias();
   loadMorning();
@@ -1945,6 +2037,7 @@ function boot(){
       if(k==='mercados'&&!MKT_LOADED) loadMercados();
       if(k==='noticias'&&!NEWS_LOADED) loadNoticias();
       if(k==='morning'&&!MC_LOADED) loadMorning();
+      if(k==='comparador') ensureCmp();
     },60);
   },true);
 }
@@ -1952,7 +2045,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else boot();
 
 /* expõe para o console / depuração */
-window.MesaLive={loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,bcb:bcb,rss:rss,HIST:HIST};
+window.MesaLive={ensureCmp:ensureCmp,CMPHIST:CMPHIST,loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,bcb:bcb,rss:rss,HIST:HIST};
 })();
 </script>
 
