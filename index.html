@@ -1611,6 +1611,21 @@ async function bcb(id,n){
     return j.map(function(x){ return {v:parseFloat(String(x.valor).replace(',','.')), d:x.data}; });
   }catch(e){ return null; }
 }
+function brTs(d){ var p=String(d).split('/'); return new Date(+p[2],+p[1]-1,+p[0]).getTime(); }
+/* série histórica longa do BCB: 'ultimos/N' falha em N grande, então usamos dataInicial.
+   A API às vezes devolve em ordem decrescente — por isso ordenamos sempre. */
+async function bcbRange(id,years){
+  var y=new Date().getFullYear()-Math.max(1,years)-1;
+  var u='https://api.bcb.gov.br/dados/serie/bcdata.sgs.'+id+'/dados?formato=json&dataInicial=01/01/'+y;
+  var t=await tFetch(u,11000);
+  if(!t) t=await viaProxy(u,null,11000);
+  try{
+    var arr=JSON.parse(t).map(function(x){ return {v:parseFloat(String(x.valor).replace(',','.')), d:x.data}; })
+      .filter(function(x){ return isFinite(x.v); });
+    arr.sort(function(a,b){ return brTs(a.d)-brTs(b.d); });
+    return arr.length?arr:null;
+  }catch(e){ return null; }
+}
 async function rss(url,limit){
   var t=await viaProxy(url,function(x){return x.indexOf('<item')>=0||x.indexOf('<entry')>=0;});
   if(!t) return [];
@@ -1932,7 +1947,7 @@ function injectRVButton(){
 
 /* ================= COMPARADOR (histórico real) ================= */
 var CMPMAP={
-  ibov:{s:'^BVSP'}, ifix:{s:'IFIX.SA'}, smll:{s:'SMAL11.SA'}, usd:{s:'USDBRL=X'},
+  ibov:{s:'^BVSP'}, ifix:{s:'IFIX.SA',alt:['XFIX11.SA']}, smll:{s:'SMAL11.SA',alt:['SMAL11.SA']}, usd:{s:'USDBRL=X'},
   sp500:{s:'^GSPC',usd:1}, qqq:{s:'QQQ',usd:1}, gold:{s:'GC=F',usd:1}, btc:{s:'BTC-USD',usd:1},
   dow:{s:'^DJI',usd:1}, silver:{s:'SI=F',usd:1}, brent:{s:'BZ=F',usd:1}, wti:{s:'CL=F',usd:1},
   iron:{s:'TIO=F',usd:1}, coffee:{s:'KC=F',usd:1}, soy:{s:'ZS=F',usd:1}, corn:{s:'ZC=F',usd:1},
@@ -1946,14 +1961,21 @@ var CMPHIST={};
 async function fetchCmpSeries(id,years){
   var m=CMPMAP[id]; if(!m) return null;
   if(m.bcbId){                                   /* CDI / IPCA: índice acumulado do BCB */
-    var arr=await bcb(m.bcbId, years*12+2);
+    var arr=await bcbRange(m.bcbId, years);
     if(!arr||!arr.length) return null;
+    arr=arr.slice(-(years*12+1));
     var v=100, out=[100];
     arr.forEach(function(x){ if(isFinite(x.v)){ v=v*(1+x.v/100); out.push(v); } });
     return out;
   }
   var range=Math.max(1,Math.min(20,years))+'y';
   var d=await yChart(m.s,range,'1mo');
+  if((!d||!d.closes||d.closes.length<3) && m.alt){      /* tenta símbolos alternativos */
+    for(var ai=0;ai<m.alt.length;ai++){
+      var d2=await yChart(m.alt[ai],range,'1mo');
+      if(d2&&d2.closes&&d2.closes.length>=3){ d=d2; break; }
+    }
+  }
   if(!d||!d.closes||d.closes.length<3) return null;
   var vals=d.closes.slice();
   if(d.price) vals[vals.length-1]=d.price;
