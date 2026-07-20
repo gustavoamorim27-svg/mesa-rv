@@ -388,36 +388,26 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <h2>Notícias</h2>
         <p>Manchetes e destaques do mercado para começar o dia. A estrutura está pronta para receber o feed de notícias.</p>
       </div>
-      <button class="btn primary">Atualizar feed</button>
+      <button class="btn primary" id="btnNews">Atualizar feed</button>
     </div>
 
-    <div class="news-featured card">
-      <div class="nf-tag"><span class="chip-tag">DESTAQUE</span><span class="nf-time">20/07/2026 · manhã · InfoMoney</span></div>
-      <h3 class="nf-title">Ibovespa abre a semana em alta perto dos 173,8 mil pontos com alívio geopolítico; dólar recua a ~R$ 5,09</h3>
-      <p class="nf-sub">Relatos de mediação no conflito EUA–Irã reduzem a pressão global e tiram força do petróleo. Sobem Vale, grandes bancos e varejo; Petrobras oscila com o barril. O Focus reduziu a projeção de IPCA de 2026 pela terceira semana seguida. No radar: início da temporada de balanços do 2T26 e a tarifa de 25% dos EUA sobre o Brasil, prevista para 22/07 (com exceções para carne, café, energia e aeronaves).</p>
-    </div>
+    <div class="news-featured card" id="nfFeat"></div>
 
     <div class="grid g-3" style="margin-top:16px">
       <div class="news-col card">
         <h3>Brasil</h3>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Focus reduz projeção de IPCA de 2026 pela 3ª semana seguida</div><div class="ni-m">20/07 · Banco Central / InfoMoney</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Tarifa de 25% dos EUA sobre o Brasil entra em vigor em 22/07, com exceções</div><div class="ni-m">20/07 · USTR / InfoMoney</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Juros futuros recuam ao longo da curva; dólar cede a ~R$ 5,09</div><div class="ni-m">20/07 · InfoMoney</div></div></div>
+        <div id="nBR"></div>
       </div>
       <div class="news-col card">
         <h3>Global</h3>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Wall Street de olho em balanços de tech: Alphabet, Tesla, IBM e Intel na semana</div><div class="ni-m">20/07 · CNBC / InfoMoney</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Mediação no conflito EUA–Irã reduz prêmio de risco e pressiona o petróleo</div><div class="ni-m">20/07 · Vital Knowledge</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Correção nas ações de chips e IA segue no radar após semanas de vendas</div><div class="ni-m">17–20/07 · InfoMoney</div></div></div>
+        <div id="nGL"></div>
       </div>
       <div class="news-col card">
         <h3>Empresas &amp; Setores</h3>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Temporada de balanços do 2T26 começa; WEG, TIM, Vivo e Ambev abrem em julho</div><div class="ni-m">Julho · B3 / ADVFN</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Vale divulga resultado em 30/07; grandes bancos e Petrobras vêm em agosto</div><div class="ni-m">Agenda · ADVFN</div></div></div>
-        <div class="ni"><div class="ni-dot"></div><div><div class="ni-t">Embraer em foco com a Farnborough Airshow, que começa em 20/07</div><div class="ni-m">20/07 · Finance News</div></div></div>
+        <div id="nEM"></div>
       </div>
     </div>
-    <p class="note-inline">Feed de 20/07/2026 (manhã), resumido a partir de fontes públicas (InfoMoney, CNN Brasil, ADVFN, Finance News). Manchetes parafraseadas para apoio do assessor; confirme os detalhes na fonte antes de repassar ao cliente.</p>
+    <p class="note-inline" id="newsNote">Feed ao vivo via RSS — G1 Economia, InfoMoney, CNBC International e Investing.com.</p>
   </div>
 
   <!-- MERCADOS -->
@@ -428,49 +418,49 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <h2>Mercados</h2>
         <p>Índices, câmbio, juros, inflação, commodities e futuros num só lugar. Valores de referência de <b>20/07/2026</b> (confirmados: índices BR, câmbio, juros, inflação, petróleo, minério, cripto, futuros/global). DXY, ouro e DI a completar. Peça "atualiza os mercados" que eu busco o resto.</p>
       </div>
-      <button class="btn primary">Atualizar cotações</button>
+      <button class="btn primary" id="btnMkt">Atualizar cotações</button>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>ÍNDICES · BRASIL</span><span class="ln"></span></div>
     <div class="grid g-4">
-      <div class="qtile"><div class="q-nm">Ibovespa</div><div class="q-v">173.800</div><div class="q-c">pts · ref. manhã 20/07</div></div>
-      <div class="qtile"><div class="q-nm">IBrX-100</div><div class="q-v">73.278</div><div class="q-c">pts · ref. 17/07</div></div>
-      <div class="qtile"><div class="q-nm">Small Caps</div><div class="q-v">2.196</div><div class="q-c">pts · ref. 17/07</div></div>
-      <div class="qtile"><div class="q-nm">IFIX</div><div class="q-v">3.847</div><div class="q-c">pts · ref. 18/07</div></div>
+      <div class="qtile" data-q="ibov"><div class="q-nm">Ibovespa</div><div class="q-v">173.800</div><div class="q-c">pts · ref. manhã 20/07</div></div>
+      <div class="qtile" data-q="bova"><div class="q-nm">BOVA11 (ETF Ibov)</div><div class="q-v">73.278</div><div class="q-c">pts · ref. 17/07</div></div>
+      <div class="qtile" data-q="small"><div class="q-nm">Small Caps</div><div class="q-v">2.196</div><div class="q-c">pts · ref. 17/07</div></div>
+      <div class="qtile" data-q="ifix"><div class="q-nm">IFIX</div><div class="q-v">3.847</div><div class="q-c">pts · ref. 18/07</div></div>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>CÂMBIO</span><span class="ln"></span></div>
     <div class="grid g-4">
-      <div class="qtile"><div class="q-nm">Dólar (USD/BRL)</div><div class="q-v">R$ 5,09</div><div class="q-c">ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">Euro (EUR/BRL)</div><div class="q-v">R$ 5,85</div><div class="q-c">ref. 19/07</div></div>
-      <div class="qtile"><div class="q-nm">DXY (índice dólar)</div><div class="q-v">—</div><div class="q-c">—</div></div>
-      <div class="qtile"><div class="q-nm">Bitcoin (BRL)</div><div class="q-v">R$ 329,4 mil</div><div class="q-c">~US$ 64,5k · ref.</div></div>
+      <div class="qtile" data-q="usd"><div class="q-nm">Dólar (USD/BRL)</div><div class="q-v">R$ 5,09</div><div class="q-c">ref. 20/07</div></div>
+      <div class="qtile" data-q="eur"><div class="q-nm">Euro (EUR/BRL)</div><div class="q-v">R$ 5,85</div><div class="q-c">ref. 19/07</div></div>
+      <div class="qtile" data-q="dxy"><div class="q-nm">DXY (índice dólar)</div><div class="q-v">—</div><div class="q-c">—</div></div>
+      <div class="qtile" data-q="btc"><div class="q-nm">Bitcoin (BRL)</div><div class="q-v">R$ 329,4 mil</div><div class="q-c">~US$ 64,5k · ref.</div></div>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>JUROS &amp; INFLAÇÃO</span><span class="ln"></span></div>
     <div class="grid g-4">
-      <div class="qtile"><div class="q-nm">CDI</div><div class="q-v">14,40</div><div class="q-c">% a.a.</div></div>
-      <div class="qtile"><div class="q-nm">Selic (meta)</div><div class="q-v">14,50</div><div class="q-c">% a.a.</div></div>
-      <div class="qtile"><div class="q-nm">IPCA (12m)</div><div class="q-v">4,64</div><div class="q-c">% · jun/26</div></div>
-      <div class="qtile"><div class="q-nm">DI Jan/27</div><div class="q-v">—</div><div class="q-c">% a.a.</div></div>
+      <div class="qtile" data-q="cdi"><div class="q-nm">CDI</div><div class="q-v">14,40</div><div class="q-c">% a.a.</div></div>
+      <div class="qtile" data-q="selic"><div class="q-nm">Selic (meta)</div><div class="q-v">14,50</div><div class="q-c">% a.a.</div></div>
+      <div class="qtile" data-q="ipca"><div class="q-nm">IPCA (12m)</div><div class="q-v">4,64</div><div class="q-c">% · jun/26</div></div>
+      <div class="qtile" data-q="selicaa"><div class="q-nm">Selic efetiva (a.a.)</div><div class="q-v">—</div><div class="q-c">% a.a.</div></div>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>COMMODITIES</span><span class="ln"></span></div>
     <div class="grid g-4">
-      <div class="qtile"><div class="q-nm">Petróleo Brent</div><div class="q-v">US$ 90</div><div class="q-c">US$/bbl · ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">Petróleo WTI</div><div class="q-v">US$ 84</div><div class="q-c">US$/bbl · ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">Minério de Ferro</div><div class="q-v">US$ 99</div><div class="q-c">US$/t · 62% · ref.</div></div>
-      <div class="qtile"><div class="q-nm">Ouro</div><div class="q-v">—</div><div class="q-c">US$/oz</div></div>
+      <div class="qtile" data-q="brent"><div class="q-nm">Petróleo Brent</div><div class="q-v">US$ 90</div><div class="q-c">US$/bbl · ref. 20/07</div></div>
+      <div class="qtile" data-q="wti"><div class="q-nm">Petróleo WTI</div><div class="q-v">US$ 84</div><div class="q-c">US$/bbl · ref. 20/07</div></div>
+      <div class="qtile" data-q="minerio"><div class="q-nm">Minério de Ferro</div><div class="q-v">US$ 99</div><div class="q-c">US$/t · 62% · ref.</div></div>
+      <div class="qtile" data-q="ouro"><div class="q-nm">Ouro</div><div class="q-v">—</div><div class="q-c">US$/oz</div></div>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>FUTUROS &amp; GLOBAL</span><span class="ln"></span><a href="https://finviz.com/futures" target="_blank" rel="noopener" style="font-family:'Sora';font-size:10px;font-weight:700;color:var(--yellow);text-decoration:none;white-space:nowrap">Finviz Futuros ↗</a></div>
     <div class="grid g-4">
-      <div class="qtile"><div class="q-nm">Ibov Futuro (WIN/IND)</div><div class="q-v">~173.900</div><div class="q-c">pts · ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">S&amp;P 500</div><div class="q-v">7.458</div><div class="q-c">pts · ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">Nasdaq</div><div class="q-v">28.624</div><div class="q-c">pts · ref. 20/07</div></div>
-      <div class="qtile"><div class="q-nm">Dow Jones</div><div class="q-v">52.118</div><div class="q-c">pts · ref. 20/07</div></div>
+      <div class="qtile" data-q="ewz"><div class="q-nm">EWZ · Brasil em NY</div><div class="q-v">~173.900</div><div class="q-c">pts · ref. 20/07</div></div>
+      <div class="qtile" data-q="sp"><div class="q-nm">S&amp;P 500</div><div class="q-v">7.458</div><div class="q-c">pts · ref. 20/07</div></div>
+      <div class="qtile" data-q="nasdaq"><div class="q-nm">Nasdaq</div><div class="q-v">28.624</div><div class="q-c">pts · ref. 20/07</div></div>
+      <div class="qtile" data-q="dow"><div class="q-nm">Dow Jones</div><div class="q-v">52.118</div><div class="q-c">pts · ref. 20/07</div></div>
     </div>
-    <p class="note-inline">Cotações variam ao longo do dia. Um arquivo local não puxa preço ao vivo (precisa de fonte paga/servidor); aqui os campos são de referência — você atualiza os que importam antes da reunião.</p>
+    <p class="note-inline" id="mktNote">Cotações ao vivo — Yahoo Finance (índices, câmbio, commodities, global) e Banco Central (CDI, Selic, IPCA).</p>
   </div>
 
   <!-- MORNING CALL -->
@@ -1552,5 +1542,349 @@ tabs.addEventListener('click',e=>{
   window.scrollTo({top:0,behavior:'smooth'});
 });
 </script>
+<script>
+/* ==========================================================================
+   DADOS AO VIVO — camada de APIs
+   • Yahoo Finance (v8/chart, via cadeia de proxies CORS): índices, ações,
+     câmbio, commodities e bolsas globais.
+   • Banco Central do Brasil (SGS, chamada direta — costuma passar em redes
+     corporativas que bloqueiam proxies): CDI, Selic, IPCA.
+   • RSS (via proxies): notícias e último Morning Call do YouTube.
+   Tudo é defensivo: se uma fonte falhar, o painel mantém o último valor e
+   mostra o estado, nunca quebra a página.
+   ========================================================================== */
+(function(){
+'use strict';
+
+/* ---------- infraestrutura ---------- */
+var PXY=[
+  function(u){return 'https://corsproxy.io/?url='+encodeURIComponent(u);},
+  function(u){return 'https://proxy.cors.sh/'+u;},
+  function(u){return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u);},
+  function(u){return 'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u);}
+];
+var _px=0;
+function tFetch(url,ms){
+  var c=new AbortController(), t=setTimeout(function(){c.abort();},ms||13000);
+  return fetch(url,{cache:'no-store',signal:c.signal})
+    .then(function(r){clearTimeout(t);return r.ok?r.text():null;})
+    .catch(function(){clearTimeout(t);return null;});
+}
+async function viaProxy(url,ok,ms){
+  for(var k=0;k<PXY.length;k++){
+    var i=(_px+k)%PXY.length;
+    var t=await tFetch(PXY[i](url),ms);
+    if(t&&(!ok||ok(t))){ _px=i; return t; }
+  }
+  return null;
+}
+async function pool(items,n,fn){
+  var res=new Array(items.length), i=0;
+  async function w(){ while(i<items.length){ var k=i++; try{ res[k]=await fn(items[k],k); }catch(e){ res[k]=null; } } }
+  await Promise.all(Array.from({length:Math.min(n,items.length||1)},w));
+  return res;
+}
+function ent(s){ var d=document.createElement('textarea'); d.innerHTML=s; return d.value; }
+
+/* ---------- fontes ---------- */
+async function yChart(sym,range,interval){
+  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)
+       +'?interval='+(interval||'1d')+'&range='+(range||'5d');
+  var t=await viaProxy(u,function(x){return x.indexOf('"chart"')>=0;});
+  if(!t) return null;
+  try{
+    var r=JSON.parse(t).chart.result[0], m=r.meta, cl=[], ts=[];
+    try{ var q=r.indicators.quote[0].close;
+      for(var i=0;i<q.length;i++) if(q[i]!=null){ cl.push(q[i]); ts.push(r.timestamp[i]); }
+    }catch(e){}
+    var price=(m.regularMarketPrice!=null)?m.regularMarketPrice:(cl.length?cl[cl.length-1]:null);
+    var prev=(m.chartPreviousClose!=null)?m.chartPreviousClose:m.previousClose;
+    if(price==null) return null;
+    return {price:price,prev:prev,closes:cl,stamps:ts};
+  }catch(e){ return null; }
+}
+async function bcb(id,n){
+  var u='https://api.bcb.gov.br/dados/serie/bcdata.sgs.'+id+'/dados/ultimos/'+(n||1)+'?formato=json';
+  var t=await tFetch(u,9000);
+  if(!t) t=await viaProxy(u,null,9000);
+  try{ var j=JSON.parse(t);
+    return j.map(function(x){ return {v:parseFloat(String(x.valor).replace(',','.')), d:x.data}; });
+  }catch(e){ return null; }
+}
+async function rss(url,limit){
+  var t=await viaProxy(url,function(x){return x.indexOf('<item')>=0||x.indexOf('<entry')>=0;});
+  if(!t) return [];
+  var out=[], re=/<item[\s>]([\s\S]*?)<\/item>/g, m;
+  while((m=re.exec(t))!==null && out.length<(limit||6)){
+    var b=m[1];
+    var ti=(b.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/)||[])[1]||'';
+    var lk=(b.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/)||[])[1]||'';
+    var dt=(b.match(/<pubDate>([\s\S]*?)<\/pubDate>/)||[])[1]||'';
+    ti=ent(ti.trim()); if(!ti) continue;
+    out.push({title:ti,link:lk.trim(),date:dt.trim()});
+  }
+  return out;
+}
+
+/* ---------- formatação ---------- */
+function nf(v,d){ return (v==null||isNaN(v))?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fmt(v,f){
+  if(v==null||isNaN(v)) return '—';
+  switch(f){
+    case 'pts':  return nf(v,0);
+    case 'brl':  return 'R$ '+nf(v,2);
+    case 'brl4': return 'R$ '+nf(v,4);
+    case 'usd':  return 'US$ '+nf(v,2);
+    case 'n2':   return nf(v,2);
+    case 'pct':  return nf(v,2)+'%';
+    case 'brlk': return v>=1e6 ? 'R$ '+nf(v/1e6,2)+' mi' : 'R$ '+nf(v/1000,1)+' mil';
+    default:     return nf(v,2);
+  }
+}
+function chgHTML(price,prev,extra){
+  if(price==null||prev==null||!isFinite(prev)||prev===0) return extra||'—';
+  var p=(price/prev-1)*100, c=p>=0?'#4ecb8f':'#ff6b5e', s=p>=0?'▲':'▼';
+  return '<span style="color:'+c+'">'+s+' '+nf(Math.abs(p),2)+'%</span>'+(extra?' · '+extra:'');
+}
+function hhmm(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+
+/* ================= MERCADOS ================= */
+var TILES={
+  ibov:{sym:'^BVSP',f:'pts',u:'pts'},      bova:{sym:'BOVA11.SA',f:'brl'},
+  small:{sym:'SMAL11.SA',f:'brl'},         ifix:{sym:'IFIX.SA',f:'pts',u:'pts'},
+  usd:{sym:'USDBRL=X',f:'brl4'},           eur:{sym:'EURBRL=X',f:'brl4'},
+  dxy:{sym:'DX-Y.NYB',f:'n2'},             btc:{special:'btc',f:'brlk'},
+  cdi:{bcbId:12,f:'cdiaa'},                selic:{bcbId:432,f:'pct'},
+  ipca:{bcbId:13522,f:'pct'},              selicaa:{bcbId:1178,f:'pct'},
+  brent:{sym:'BZ=F',f:'usd',u:'US$/bbl'},  wti:{sym:'CL=F',f:'usd',u:'US$/bbl'},
+  minerio:{sym:'TIO=F',f:'usd',u:'US$/t'}, ouro:{sym:'GC=F',f:'usd',u:'US$/oz'},
+  ewz:{sym:'EWZ',f:'usd'},                 sp:{sym:'^GSPC',f:'pts',u:'pts'},
+  nasdaq:{sym:'^IXIC',f:'pts',u:'pts'},    dow:{sym:'^DJI',f:'pts',u:'pts'}
+};
+function tile(k){ return document.querySelector('.qtile[data-q="'+k+'"]'); }
+function setTile(k,val,sub){
+  var el=tile(k); if(!el) return;
+  var v=el.querySelector('.q-v'), c=el.querySelector('.q-c');
+  if(v) v.textContent=val; if(c) c.innerHTML=sub;
+}
+var MKT_LOADED=false;
+async function loadMercados(){
+  var btn=document.getElementById('btnMkt');
+  if(btn){ btn.disabled=true; btn.textContent='Atualizando…'; }
+  Object.keys(TILES).forEach(function(k){ var el=tile(k); if(el){ var c=el.querySelector('.q-c'); if(c) c.textContent='carregando…'; } });
+
+  var ySyms=Object.keys(TILES).filter(function(k){ return TILES[k].sym; });
+  var res=await pool(ySyms,6,function(k){ return yChart(TILES[k].sym,'5d','1d'); });
+  var got={}; ySyms.forEach(function(k,i){ got[k]=res[i]; });
+
+  ySyms.forEach(function(k){
+    var t=TILES[k], d=got[k];
+    if(!d){ setTile(k, (tile(k)&&tile(k).querySelector('.q-v').textContent)||'—', '<span style="color:#ff6b5e">fonte indisponível</span>'); return; }
+    setTile(k, fmt(d.price,t.f), chgHTML(d.price,d.prev,(t.u||'')+' · '+hhmm()));
+  });
+
+  /* Bitcoin em reais = BTC-USD × USD/BRL */
+  try{
+    var btc=await yChart('BTC-USD','5d','1d');
+    var usd=got.usd;
+    if(btc&&usd&&usd.price){
+      var brl=btc.price*usd.price, prevBrl=(btc.prev&&usd.prev)?btc.prev*usd.prev:null;
+      setTile('btc', fmt(brl,'brlk'), chgHTML(brl,prevBrl,'US$ '+nf(btc.price,0)+' · '+hhmm()));
+    } else setTile('btc','—','<span style="color:#ff6b5e">fonte indisponível</span>');
+  }catch(e){}
+
+  /* Banco Central */
+  try{
+    var ids=[['cdi',12],['selic',432],['ipca',13522],['selicaa',1178]];
+    var bs=await pool(ids,4,function(p){ return bcb(p[1],1); });
+    ids.forEach(function(p,i){
+      var k=p[0], d=bs[i]&&bs[i][0];
+      if(!d){ setTile(k,'—','<span style="color:#ff6b5e">BCB indisponível</span>'); return; }
+      if(k==='cdi'){
+        var aa=(Math.pow(1+d.v/100,252)-1)*100;         /* CDI diário → % a.a. */
+        setTile('cdi', nf(aa,2), '% a.a. · BCB '+d.d);
+      } else if(k==='ipca'){
+        setTile('ipca', nf(d.v,2), '% acum. 12m · '+d.d);
+      } else {
+        setTile(k, nf(d.v,2), '% a.a. · BCB '+d.d);
+      }
+    });
+  }catch(e){}
+
+  var note=document.getElementById('mktNote');
+  if(note) note.innerHTML='Cotações ao vivo — Yahoo Finance e Banco Central. Última atualização às <b>'+hhmm()+'</b>. Podem ter atraso de alguns minutos; confirme antes de repassar ao cliente.';
+  if(btn){ btn.disabled=false; btn.textContent='Atualizar cotações'; }
+  MKT_LOADED=true;
+}
+
+/* ================= NOTÍCIAS ================= */
+var FEEDS={
+  BR:['https://g1.globo.com/rss/g1/economia/','https://www.infomoney.com.br/feed/'],
+  GL:['https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362','https://finance.yahoo.com/news/rssindex'],
+  EM:['https://br.investing.com/rss/news_25.rss','https://www.infomoney.com.br/feed/']
+};
+function srcName(u){
+  if(u.indexOf('g1.globo')>=0) return 'G1 Economia';
+  if(u.indexOf('infomoney')>=0) return 'InfoMoney';
+  if(u.indexOf('cnbc')>=0) return 'CNBC';
+  if(u.indexOf('yahoo')>=0) return 'Yahoo Finance';
+  if(u.indexOf('investing')>=0) return 'Investing.com';
+  return 'RSS';
+}
+function niHTML(it){
+  var d=''; try{ if(it.date){ var dt=new Date(it.date); if(!isNaN(dt)) d=('0'+dt.getDate()).slice(-2)+'/'+('0'+(dt.getMonth()+1)).slice(-2); } }catch(e){}
+  return '<div class="ni"><div class="ni-dot"></div><div>'
+    +'<div class="ni-t"><a href="'+(it.link||'#')+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">'+it.title+'</a></div>'
+    +'<div class="ni-m">'+(d?d+' · ':'')+(it.src||'')+'</div></div></div>';
+}
+var NEWS_LOADED=false;
+async function loadNoticias(){
+  var btn=document.getElementById('btnNews');
+  if(btn){ btn.disabled=true; btn.textContent='Atualizando…'; }
+  ['nBR','nGL','nEM'].forEach(function(id){ var e=document.getElementById(id); if(e) e.innerHTML='<div class="ni"><div class="ni-dot"></div><div><div class="ni-m">carregando…</div></div></div>'; });
+
+  async function group(list){
+    var out=[];
+    for(var i=0;i<list.length && out.length<3;i++){
+      var items=await rss(list[i],4);
+      items.forEach(function(it){ if(out.length<3){ it.src=srcName(list[i]); out.push(it); } });
+    }
+    return out;
+  }
+  var br=await group(FEEDS.BR), gl=await group(FEEDS.GL), em=await group(FEEDS.EM);
+  function put(id,arr){
+    var e=document.getElementById(id); if(!e) return;
+    e.innerHTML=arr.length?arr.map(niHTML).join(''):'<div class="ni"><div class="ni-dot"></div><div><div class="ni-m" style="color:#ff6b5e">feed indisponível (rede pode estar bloqueando)</div></div></div>';
+  }
+  put('nBR',br); put('nGL',gl); put('nEM',em);
+
+  /* destaque = primeira manchete do Brasil */
+  var f=document.getElementById('nfFeat');
+  if(f){
+    if(br.length){
+      var it=br[0], dd=''; try{ var dt=new Date(it.date); if(!isNaN(dt)) dd=dt.toLocaleDateString('pt-BR')+' · '+('0'+dt.getHours()).slice(-2)+'h'; }catch(e){}
+      f.innerHTML='<div class="nf-tag"><span class="chip-tag">DESTAQUE</span><span class="nf-time">'+(dd?dd+' · ':'')+it.src+'</span></div>'
+        +'<h3 class="nf-title"><a href="'+it.link+'" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">'+it.title+'</a></h3>'
+        +'<p class="nf-sub">Manchete mais recente do feed. Clique para abrir a matéria completa na fonte.</p>';
+    } else {
+      f.innerHTML='<div class="nf-tag"><span class="chip-tag">DESTAQUE</span></div><h3 class="nf-title">Feed indisponível no momento</h3><p class="nf-sub">Não foi possível carregar as notícias — a rede pode estar bloqueando o acesso às fontes.</p>';
+    }
+  }
+  var n=document.getElementById('newsNote');
+  if(n) n.innerHTML='Feed ao vivo via RSS (G1, InfoMoney, CNBC, Investing.com). Atualizado às <b>'+hhmm()+'</b>.';
+  if(btn){ btn.disabled=false; btn.textContent='Atualizar feed'; }
+  NEWS_LOADED=true;
+}
+
+/* ================= MORNING CALL (último vídeo) ================= */
+var MC_LOADED=false;
+async function loadMorning(){
+  var t=await viaProxy('https://www.youtube.com/feeds/videos.xml?playlist_id=PLMl5SicO7iPAblUrGoWYKJ1Gw7QDFkEZ8',
+                       function(x){return x.indexOf('<entry')>=0;});
+  if(!t) return;
+  try{
+    var e=(t.match(/<entry>[\s\S]*?<\/entry>/)||[])[0]||'';
+    var title=ent(((e.match(/<title>([\s\S]*?)<\/title>/)||[])[1]||'').trim());
+    var pub=((e.match(/<published>([\s\S]*?)<\/published>/)||[])[1]||'').trim();
+    var vid=((e.match(/<yt:videoId>([\s\S]*?)<\/yt:videoId>/)||[])[1]||'').trim();
+    var d=document.getElementById('mcDate');
+    if(d&&pub){ var dt=new Date(pub);
+      if(!isNaN(dt)) d.textContent=dt.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+    if(vid){
+      var ifr=document.querySelector('.panel[data-p="morning"] iframe');
+      if(ifr) ifr.src='https://www.youtube.com/embed/'+vid+'?rel=0';
+    }
+    if(title){
+      var host=document.getElementById('mcResumo');
+      if(host && !document.getElementById('mcLatest')){
+        var p=document.createElement('p'); p.id='mcLatest';
+        p.style.cssText='margin:0 0 10px;font-weight:700;color:#FFC700';
+        p.textContent='Último vídeo: '+title;
+        host.insertBefore(p,host.firstChild);
+      } else if(document.getElementById('mcLatest')){
+        document.getElementById('mcLatest').textContent='Último vídeo: '+title;
+      }
+    }
+    MC_LOADED=true;
+  }catch(e){}
+}
+
+/* ================= RENDA VARIÁVEL (cotações reais) ================= */
+var HIST={};                 /* tk -> série mensal real (12m) */
+var RV_LOADED=false;
+async function loadRV(force){
+  if(typeof ASSETS==='undefined'||!Array.isArray(ASSETS)) return;
+  var btn=document.getElementById('btnRV');
+  if(btn){ btn.disabled=true; btn.textContent='Buscando cotações…'; }
+  var tks=ASSETS.map(function(a){ return a.tk; });
+  var done=0;
+  var res=await pool(tks,6,async function(tk){
+    var d=await yChart(tk+'.SA','1y','1mo');
+    done++;
+    if(btn) btn.textContent='Buscando cotações… '+done+'/'+tks.length;
+    return d;
+  });
+  var ok=0;
+  res.forEach(function(d,i){
+    if(!d||!d.price) return;
+    var a=ASSETS[i];
+    a.preco=d.price;
+    if(d.closes&&d.closes.length>1){
+      var first=d.closes[0];
+      if(first>0){ a.chg12=Math.round((d.price/first-1)*1000)/10; }
+      var h=d.closes.slice(-13); h[h.length-1]=d.price;
+      HIST[a.tk]=h;
+    }
+    ok++;
+  });
+  if(typeof renderRV==='function') try{ renderRV(); }catch(e){}
+  if(btn){ btn.disabled=false; btn.textContent='Atualizar cotações ('+ok+'/'+tks.length+' · '+hhmm()+')'; }
+  RV_LOADED=true;
+}
+/* usa histórico real no gráfico do ativo, quando disponível */
+if(typeof window.genPath==='function'){
+  var _genPath=window.genPath;
+  window.genPath=function(a){
+    try{ if(a&&HIST[a.tk]&&HIST[a.tk].length>3) return HIST[a.tk].slice(); }catch(e){}
+    return _genPath(a);
+  };
+}
+function injectRVButton(){
+  var head=document.querySelector('.panel[data-p="rv"] .page-head');
+  if(!head||document.getElementById('btnRV')) return;
+  var b=document.createElement('button');
+  b.className='btn primary'; b.id='btnRV'; b.textContent='Atualizar cotações';
+  b.style.marginLeft='10px';
+  b.onclick=function(){ loadRV(true); };
+  head.appendChild(b);
+}
+
+/* ================= inicialização / lazy por aba ================= */
+function boot(){
+  injectRVButton();
+  loadMercados();          /* aba inicial mostra Notícias, mas Mercados é barato */
+  loadNoticias();
+  loadMorning();
+  var tabs=document.querySelector('.tabs')||document;
+  tabs.addEventListener('click',function(ev){
+    var t=ev.target.closest?ev.target.closest('.tab'):null; if(!t) return;
+    var k=t.getAttribute('data-t');
+    setTimeout(function(){
+      if(k==='rv'&&!RV_LOADED) loadRV();
+      if(k==='mercados'&&!MKT_LOADED) loadMercados();
+      if(k==='noticias'&&!NEWS_LOADED) loadNoticias();
+      if(k==='morning'&&!MC_LOADED) loadMorning();
+    },60);
+  },true);
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
+else boot();
+
+/* expõe para o console / depuração */
+window.MesaLive={loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,bcb:bcb,rss:rss,HIST:HIST};
+})();
+</script>
+
 </body>
 </html>
