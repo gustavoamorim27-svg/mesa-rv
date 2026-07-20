@@ -1816,6 +1816,37 @@ async function loadMorning(){
 
 /* ================= RENDA VARIÁVEL (cotações reais) ================= */
 var HIST={};                 /* tk -> série mensal real (12m) */
+
+/* Códigos que mudaram na B3 (fusões/reorganizações societárias).
+   Ex.: CCR virou Motiva, BRF+Marfrig viraram MBRF, JBS passou a BDR. */
+var SYMFIX={ CCRO3:'MOTV3.SA', BRFS3:'MBRF3.SA', EMBR3:'EMBJ3.SA', CPLE6:'CPLE3.SA', JBSS3:'JBSS32.SA' };
+var SYMCACHE={};
+try{ SYMCACHE=JSON.parse(localStorage.getItem('mesaSymMap')||'{}')||{}; }catch(e){}
+function saveSym(){ try{ localStorage.setItem('mesaSymMap',JSON.stringify(SYMCACHE)); }catch(e){} }
+/* procura o papel na B3 (exchange SAO) pelo nome da empresa */
+async function yahooSearchSAO(q){
+  if(!q) return null;
+  var u='https://query2.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+'&quotesCount=8';
+  var t=await viaProxy(u,function(x){return x.indexOf('quotes')>=0;});
+  if(!t) return null;
+  try{
+    var qs=JSON.parse(t).quotes||[];
+    for(var i=0;i<qs.length;i++) if(qs[i].exchange==='SAO'&&qs[i].symbol) return qs[i].symbol;
+  }catch(e){}
+  return null;
+}
+/* cotação de um ativo com auto-correção de código */
+async function quoteAsset(a){
+  var sym=SYMCACHE[a.tk]||SYMFIX[a.tk]||(a.tk+'.SA');
+  var d=await yChart(sym,'1y','1mo');
+  if(d&&d.price){ if(sym!==a.tk+'.SA'&&!SYMCACHE[a.tk]){ SYMCACHE[a.tk]=sym; saveSym(); } return d; }
+  var alt=await yahooSearchSAO(a.nome||a.tk);
+  if(alt&&alt!==sym){
+    d=await yChart(alt,'1y','1mo');
+    if(d&&d.price){ SYMCACHE[a.tk]=alt; saveSym(); return d; }
+  }
+  return null;
+}
 var RV_LOADED=false;
 async function loadRV(force){
   if(typeof ASSETS==='undefined'||!Array.isArray(ASSETS)) return;
@@ -1840,15 +1871,15 @@ async function loadRV(force){
   var done=0;
   function tick(){ done++; if(btn) btn.textContent='Buscando cotações… '+done+'/'+tks.length; }
   /* concorrência baixa: proxies públicos limitam rajadas */
-  var res=await pool(tks,3,async function(tk){
-    var d=await yChart(tk+'.SA','1y','1mo'); tick(); return d;
+  var res=await pool(ASSETS,3,async function(a){
+    var d=await quoteAsset(a); tick(); return d;
   });
   /* segunda passada para os que falharam (rate limit costuma ser temporário) */
   var miss=[]; res.forEach(function(d,i){ if(!d||!d.price) miss.push(i); });
   if(miss.length){
     if(btn) btn.textContent='Repetindo '+miss.length+' ativo(s)…';
     await new Promise(function(r){ setTimeout(r,2500); });
-    var r2=await pool(miss,2,async function(i){ return await yChart(tks[i]+'.SA','1y','1mo'); });
+    var r2=await pool(miss,2,async function(i){ return await quoteAsset(ASSETS[i]); });
     miss.forEach(function(i,k){ if(r2[k]&&r2[k].price) res[i]=r2[k]; });
   }
 
@@ -1871,7 +1902,14 @@ async function loadRV(force){
     ASSETS.forEach(function(a){ if(HIST[a.tk]) save[a.tk]={p:a.preco,c:a.chg12,h:HIST[a.tk]}; });
     sessionStorage.setItem('mesaRvQuotes', JSON.stringify({t:Date.now(),d:save}));
   }catch(e){}
-  if(btn){ btn.disabled=false; btn.textContent='Atualizar cotações ('+ok+'/'+tks.length+' · '+hhmm()+')'; }
+  if(btn){
+    btn.disabled=false;
+    btn.textContent='Atualizar cotações ('+ok+'/'+tks.length+' · '+hhmm()+')';
+    var semQuote=ASSETS.filter(function(a){ return !HIST[a.tk]; }).map(function(a){ return a.tk; });
+    btn.title=semQuote.length
+      ? 'Sem cotação ao vivo (preço manual): '+semQuote.join(', ')
+      : 'Todos os ativos com cotação ao vivo';
+  }
   RV_LOADED=true;
 }
 /* usa histórico real no gráfico do ativo, quando disponível */
