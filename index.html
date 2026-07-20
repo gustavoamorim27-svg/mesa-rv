@@ -1565,7 +1565,7 @@ var PXY=[
 ];
 var _px=0;
 function tFetch(url,ms){
-  var c=new AbortController(), t=setTimeout(function(){c.abort();},ms||13000);
+  var c=new AbortController(), t=setTimeout(function(){c.abort();},ms||8000);
   return fetch(url,{cache:'no-store',signal:c.signal})
     .then(function(r){clearTimeout(t);return r.ok?r.text():null;})
     .catch(function(){clearTimeout(t);return null;});
@@ -1643,7 +1643,11 @@ function fmt(v,f){
 }
 function chgHTML(price,prev,extra){
   if(price==null||prev==null||!isFinite(prev)||prev===0) return extra||'—';
-  var p=(price/prev-1)*100, c=p>=0?'#4ecb8f':'#ff6b5e', s=p>=0?'▲':'▼';
+  var p=(price/prev-1)*100;
+  /* contratos ilíquidos (minério, boi) às vezes trazem fechamento anterior defasado:
+     acima de 25% num dia é quase sempre artefato da fonte, então só mostramos o preço */
+  if(!isFinite(p)||Math.abs(p)>25) return extra||'—';
+  var c=p>=0?'#4ecb8f':'#ff6b5e', s=p>=0?'▲':'▼';
   return '<span style="color:'+c+'">'+s+' '+nf(Math.abs(p),2)+'%</span>'+(extra?' · '+extra:'');
 }
 function hhmm(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
@@ -1680,7 +1684,7 @@ async function loadMercados(){
   ySyms.forEach(function(k){
     var t=TILES[k], d=got[k];
     if(!d){ setTile(k, (tile(k)&&tile(k).querySelector('.q-v').textContent)||'—', '<span style="color:#ff6b5e">fonte indisponível</span>'); return; }
-    setTile(k, fmt(d.price,t.f), chgHTML(d.price,d.prev,(t.u||'')+' · '+hhmm()));
+    setTile(k, fmt(d.price,t.f), chgHTML(d.price,d.prev,[t.u,hhmm()].filter(Boolean).join(' · ')));
   });
 
   /* Bitcoin em reais = BTC-USD × USD/BRL */
@@ -1818,13 +1822,36 @@ async function loadRV(force){
   var btn=document.getElementById('btnRV');
   if(btn){ btn.disabled=true; btn.textContent='Buscando cotações…'; }
   var tks=ASSETS.map(function(a){ return a.tk; });
+
+  /* cache de sessão (15 min) — evita refazer 46 chamadas a cada reload */
+  var CK='mesaRvQuotes';
+  if(!force){
+    try{
+      var c=JSON.parse(sessionStorage.getItem(CK)||'null');
+      if(c && (Date.now()-c.t)<15*60*1000 && c.d){
+        ASSETS.forEach(function(a){ var q=c.d[a.tk]; if(q){ a.preco=q.p; a.chg12=q.c; if(q.h) HIST[a.tk]=q.h; } });
+        if(typeof renderRV==='function') try{ renderRV(); }catch(e){}
+        if(btn){ btn.disabled=false; btn.textContent='Atualizar cotações (cache)'; }
+        RV_LOADED=true; return;
+      }
+    }catch(e){}
+  }
+
   var done=0;
-  var res=await pool(tks,6,async function(tk){
-    var d=await yChart(tk+'.SA','1y','1mo');
-    done++;
-    if(btn) btn.textContent='Buscando cotações… '+done+'/'+tks.length;
-    return d;
+  function tick(){ done++; if(btn) btn.textContent='Buscando cotações… '+done+'/'+tks.length; }
+  /* concorrência baixa: proxies públicos limitam rajadas */
+  var res=await pool(tks,3,async function(tk){
+    var d=await yChart(tk+'.SA','1y','1mo'); tick(); return d;
   });
+  /* segunda passada para os que falharam (rate limit costuma ser temporário) */
+  var miss=[]; res.forEach(function(d,i){ if(!d||!d.price) miss.push(i); });
+  if(miss.length){
+    if(btn) btn.textContent='Repetindo '+miss.length+' ativo(s)…';
+    await new Promise(function(r){ setTimeout(r,2500); });
+    var r2=await pool(miss,2,async function(i){ return await yChart(tks[i]+'.SA','1y','1mo'); });
+    miss.forEach(function(i,k){ if(r2[k]&&r2[k].price) res[i]=r2[k]; });
+  }
+
   var ok=0;
   res.forEach(function(d,i){
     if(!d||!d.price) return;
@@ -1839,6 +1866,11 @@ async function loadRV(force){
     ok++;
   });
   if(typeof renderRV==='function') try{ renderRV(); }catch(e){}
+  try{
+    var save={};
+    ASSETS.forEach(function(a){ if(HIST[a.tk]) save[a.tk]={p:a.preco,c:a.chg12,h:HIST[a.tk]}; });
+    sessionStorage.setItem('mesaRvQuotes', JSON.stringify({t:Date.now(),d:save}));
+  }catch(e){}
   if(btn){ btn.disabled=false; btn.textContent='Atualizar cotações ('+ok+'/'+tks.length+' · '+hhmm()+')'; }
   RV_LOADED=true;
 }
