@@ -968,10 +968,153 @@ const ASSETS = [
   {tk:"CYRE3", nome:"Cyrela",        setor:"Construção",       preco:24.50,chg12:7,alvo:null,recom:"—"},
   {tk:"MULT3", nome:"Multiplan",     setor:"Shoppings",        preco:26.40,chg12:5,alvo:null,recom:"—"},
   {tk:"CCRO3", nome:"Motiva (CCR)",  setor:"Concessões",       preco:13.70,chg12:6,alvo:null,recom:"—"},
-  {tk:"RAIL3", nome:"Rumo",          setor:"Transportes",      preco:19.50,chg12:4,alvo:null,recom:"—"},
+  {tk:"RAIL3", nome:"Rumo",          setor:"Transportes",      preco:19.50,chg12:4,alvo:null,recom:"—"},,
+
+ /* ===== ETFs — Brasil e exterior =====
+    Preços e variação de 12m semeados com dados reais do Yahoo em 21/07/2026;
+    a camada MesaLive atualiza no boot. Os de fora usam `sym` (sem .SA) e `moeda:'USD'`.
+    FIXA11 e B5P211 ficaram de fora: a série do Yahoo tem 5 meses de valor repetido
+    e um salto artificial (12,30 -> 18,89) que inventaria +56% de retorno. ===== */
+ {tk:"BOVA11",nome:"iShares Ibovespa",setor:"ETF Brasil",preco:170.38,chg12:23,alvo:null,pot:null,risco:32,riscoLbl:"Alto",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Replica o Ibovespa — o retrato da Bolsa brasileira em um único ativo. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Historicamente reinveste os proventos recebidos das empresas na própria carteira, em vez de distribuir.",
+  riscos:["Concentração em commodities e bancos, que dominam o índice","Volatilidade típica de bolsa emergente","Risco político e fiscal doméstico","Câmbio afeta o desempenho medido em dólar"],
+  sobre:"Acompanha as ~80 ações mais negociadas da B3, ponderadas por liquidez e valor de mercado. É o ETF mais líquido do país e o instrumento padrão para tomar exposição à renda variável brasileira."},
+ {tk:"SMAL11",nome:"iShares Small Cap",setor:"ETF Brasil",preco:105.79,chg12:-1.5,alvo:null,pot:null,risco:42,riscoLbl:"Alto",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Replica o índice de small caps da B3. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Reinveste os proventos na carteira.",
+  riscos:["Sensibilidade alta à taxa de juros doméstica","Liquidez menor das empresas da carteira","Volatilidade acima da do Ibovespa","Maior dependência do ciclo econômico interno"],
+  sobre:"Reúne empresas de menor capitalização listadas na B3. Tende a ser mais sensível ao ciclo doméstico e aos juros do que o Ibovespa, com potencial de retorno e volatilidade maiores."},
+ {tk:"IVVB11",nome:"iShares S&P 500",setor:"ETF Brasil",preco:429.22,chg12:9,alvo:null,pot:null,risco:26,riscoLbl:"Médio",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Dá exposição ao S&P 500 em reais, sem precisar remeter recursos ao exterior. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Reinveste os proventos.",
+  riscos:["Exposição cambial: real forte reduz o retorno em BRL","Concentração crescente nas grandes empresas de tecnologia","Risco de mercado americano","Tributação de ETF de índice no Brasil"],
+  sobre:"Acompanha o S&P 500 negociando na B3, em reais e sem proteção cambial. O retorno combina o desempenho das 500 maiores empresas americanas com a variação do dólar frente ao real."},
+ {tk:"NASD11",nome:"Nasdaq-100 (Investo)",setor:"ETF Brasil",preco:20.59,chg12:16.3,alvo:null,pot:null,risco:38,riscoLbl:"Alto",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Nasdaq-100 em reais, na B3. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Reinveste os proventos.",
+  riscos:["Concentração setorial forte em tecnologia","Sensibilidade a juros longos americanos","Exposição cambial sem hedge","Volatilidade acima da do S&P 500"],
+  sobre:"Replica o Nasdaq-100, índice das maiores empresas não financeiras listadas na Nasdaq, com peso dominante de tecnologia. Negociado em reais e sem hedge cambial."},
+ {tk:"DIVO11",nome:"It Now IDIV (Dividendos)",setor:"ETF Brasil",preco:127.44,chg12:21.9,alvo:null,pot:null,risco:30,riscoLbl:"Médio",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Carteira de ações brasileiras com histórico de dividendos. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui rendimentos aos cotistas periodicamente.",
+  riscos:["Concentração em setores regulados e cíclicos","Dividendo passado não garante dividendo futuro","Sensibilidade a mudanças na tributação de dividendos","Menor participação em setores de crescimento"],
+  sobre:"Segue o IDIV, índice que reúne as ações da B3 com maiores taxas de dividendo nos últimos anos. Concentra-se em setores maduros e geradores de caixa, como elétricas, bancos e mineração."},
+ {tk:"XFIX11",nome:"Trend Ifix (Fundos Imobiliários)",setor:"ETF Brasil",preco:13.47,chg12:9.5,alvo:null,pot:null,risco:22,riscoLbl:"Médio",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Cesta de fundos imobiliários que acompanha o IFIX. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui os rendimentos recebidos dos FIIs da carteira.",
+  riscos:["Sensibilidade à taxa de juros real","Vacância e inadimplência nos imóveis","Risco de crédito nos FIIs de papel","Liquidez menor que a dos ETFs de ações"],
+  sobre:"Replica o IFIX reunindo diversos fundos imobiliários em um único ativo, o que dilui o risco de imóvel ou de inquilino específico. Combina FIIs de tijolo e de papel."},
+ {tk:"GOLD11",nome:"Ouro (Trend)",setor:"ETF Brasil",preco:21.48,chg12:9.7,alvo:null,pot:null,risco:24,riscoLbl:"Médio",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Exposição ao ouro em reais. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Não distribui rendimentos — ouro não gera fluxo de caixa.",
+  riscos:["Ouro não paga juros nem dividendos","Exposição dupla: metal e câmbio","Pode ficar anos sem valorização","Sensível a juros reais americanos"],
+  sobre:"Acompanha a variação do ouro no mercado internacional, convertida para reais. É usado como reserva de valor e proteção em momentos de estresse, por ter baixa correlação com a Bolsa."},
+ {tk:"HASH11",nome:"Hashdex Crypto Index",setor:"ETF Brasil",preco:43.44,chg12:-49.1,alvo:null,pot:null,risco:72,riscoLbl:"Muito alto",recom:"—",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Cesta de criptoativos negociada na B3. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Não distribui rendimentos.",
+  riscos:["Volatilidade muito superior à da Bolsa — quedas de mais de 50% já ocorreram","Risco regulatório em várias jurisdições","Concentração em poucos ativos","Indicado apenas para perfil agressivo e parcela pequena da carteira"],
+  sobre:"Reúne os principais criptoativos por capitalização, com peso dominante de Bitcoin e Ethereum. Permite exposição a cripto por conta corrente e custódia tradicionais, sem carteira digital própria."},
+ {tk:"SPY",nome:"SPDR S&P 500",setor:"ETF Exterior",preco:748.27,chg12:16,alvo:null,pot:null,risco:26,riscoLbl:"Médio",recom:"—",sym:"SPY",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"O ETF mais negociado do mundo, referência do mercado americano. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente.",
+  riscos:["Concentração elevada nas maiores empresas de tecnologia","Taxa um pouco maior que a de IVV e VOO","Risco cambial para o investidor brasileiro","Exposição ao ciclo econômico americano"],
+  sobre:"Primeiro ETF lançado nos Estados Unidos, em 1993, replica o S&P 500. É o mais líquido do mundo, o que o torna o preferido para operações táticas e para o mercado de opções."},
+ {tk:"IVV",nome:"iShares Core S&P 500",setor:"ETF Exterior",preco:751.82,chg12:16,alvo:null,pot:null,risco:26,riscoLbl:"Médio",recom:"—",sym:"IVV",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Mesma exposição do SPY, com taxa menor. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente.",
+  riscos:["Mesma concentração setorial do S&P 500","Liquidez inferior à do SPY para operações grandes","Risco cambial","Exposição ao mercado americano"],
+  sobre:"Replica o S&P 500 com custo mais baixo que o SPY, o que o torna mais indicado para posições de longo prazo. Estruturado como fundo aberto, pode reinvestir dividendos internamente."},
+ {tk:"VOO",nome:"Vanguard S&P 500",setor:"ETF Exterior",preco:687.8,chg12:16,alvo:null,pot:null,risco:26,riscoLbl:"Médio",recom:"—",sym:"VOO",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"S&P 500 pela Vanguard, com uma das menores taxas do mercado. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente.",
+  riscos:["Concentração nas maiores empresas do índice","Liquidez menor que a do SPY no intradiário","Risco cambial","Exposição ao mercado americano"],
+  sobre:"Replica o S&P 500 com taxa de administração entre as mais baixas disponíveis. É uma das opções mais usadas em carteiras de acumulação de longo prazo."},
+ {tk:"QQQ",nome:"Invesco Nasdaq-100",setor:"ETF Exterior",preco:708.96,chg12:24.3,alvo:null,pot:null,risco:38,riscoLbl:"Alto",recom:"—",sym:"QQQ",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"As 100 maiores empresas não financeiras da Nasdaq. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente, com yield baixo.",
+  riscos:["Concentração setorial muito alta em tecnologia","Sensibilidade forte a juros longos","Múltiplos elevados nas maiores posições","Risco cambial"],
+  sobre:"Concentra tecnologia, comunicação e consumo discricionário. Historicamente entrega retorno superior ao S&P 500 em ciclos de expansão, com quedas também mais profundas nas correções."},
+ {tk:"VTI",nome:"Vanguard Total Stock Market",setor:"ETF Exterior",preco:369.42,chg12:16.1,alvo:null,pot:null,risco:27,riscoLbl:"Médio",recom:"—",sym:"VTI",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"O mercado acionário americano inteiro em um ativo. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente.",
+  riscos:["Ainda dominado pelas maiores empresas, apesar da amplitude","Exposição integral ao mercado americano","Risco cambial","Sem diversificação geográfica"],
+  sobre:"Cobre praticamente todas as ações negociadas nos Estados Unidos — grandes, médias e pequenas. Oferece diversificação mais ampla que o S&P 500, embora o desempenho seja parecido pelo peso das maiores."},
+ {tk:"IWM",nome:"iShares Russell 2000",setor:"ETF Exterior",preco:295.85,chg12:25.8,alvo:null,pot:null,risco:40,riscoLbl:"Alto",recom:"—",sym:"IWM",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Small caps americanas. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente.",
+  riscos:["Volatilidade superior à das large caps","Parcela relevante de empresas sem lucro","Sensibilidade alta a juros e crédito","Risco cambial"],
+  sobre:"Replica o Russell 2000, índice de cerca de 2.000 empresas americanas de menor capitalização. Mais sensível ao ciclo doméstico dos Estados Unidos e aos juros que os índices de grandes empresas."},
+ {tk:"DIA",nome:"SPDR Dow Jones",setor:"ETF Exterior",preco:521.44,chg12:14.3,alvo:null,pot:null,risco:24,riscoLbl:"Médio",recom:"—",sym:"DIA",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Os 30 nomes do Dow Jones. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos mensalmente.",
+  riscos:["Ponderação por preço, não por valor de mercado","Apenas 30 empresas na carteira","Menor exposição a tecnologia que o S&P 500","Risco cambial"],
+  sobre:"Replica o Dow Jones Industrial Average, composto por 30 grandes empresas americanas consolidadas. O índice é ponderado por preço, metodologia antiga que distorce os pesos em relação ao valor de mercado."},
+ {tk:"EEM",nome:"iShares MSCI Emerging Markets",setor:"ETF Exterior",preco:65.36,chg12:31.1,alvo:null,pot:null,risco:38,riscoLbl:"Alto",recom:"—",sym:"EEM",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Ações de mercados emergentes, incluindo o Brasil. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos semestralmente.",
+  riscos:["Peso alto de China, com risco regulatório e geopolítico","Volatilidade e risco cambial dos países da carteira","Sobreposição com a exposição que o cliente já tem no Brasil","Governança desigual entre os mercados"],
+  sobre:"Reúne ações de países emergentes, com peso relevante de China, Taiwan, Índia, Coreia e Brasil. Para o investidor brasileiro, atenção: já embute exposição ao próprio Brasil."},
+ {tk:"VEA",nome:"Vanguard Developed Markets",setor:"ETF Exterior",preco:70.46,chg12:20,alvo:null,pot:null,risco:25,riscoLbl:"Médio",recom:"—",sym:"VEA",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Mercados desenvolvidos fora dos Estados Unidos. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente, com yield acima do S&P 500.",
+  riscos:["Crescimento historicamente menor que o do mercado americano","Exposição a várias moedas além do dólar","Peso relevante de setores tradicionais","Risco cambial em relação ao real"],
+  sobre:"Cobre ações de Europa, Japão, Canadá e Austrália. Serve para diversificar geograficamente uma carteira concentrada em Estados Unidos, com custo baixo."},
+ {tk:"GLD",nome:"SPDR Gold Shares",setor:"ETF Exterior",preco:374.56,chg12:17.8,alvo:null,pot:null,risco:24,riscoLbl:"Médio",recom:"—",sym:"GLD",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Ouro físico em dólar. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Não distribui rendimentos.",
+  riscos:["Ouro não gera fluxo de caixa","Custo de custódia reduz o retorno no longo prazo","Pode passar anos sem valorizar","Sensível a juros reais americanos"],
+  sobre:"Lastreado em ouro físico custodiado em cofres. É o instrumento mais líquido para exposição ao metal e uma das defesas clássicas contra inflação e estresse de mercado."},
+ {tk:"TLT",nome:"iShares 20+ Year Treasury",setor:"ETF Exterior",preco:83.7,chg12:-3.4,alvo:null,pot:null,risco:34,riscoLbl:"Alto",recom:"—",sym:"TLT",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Títulos do Tesouro americano de prazo longo. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui juros mensalmente.",
+  riscos:["Duration alta: variações pequenas de juros movem muito o preço","Perdas relevantes em ciclos de alta de juros","Risco fiscal americano afeta o prêmio dos títulos longos","Risco cambial"],
+  sobre:"Reúne Treasuries com vencimento acima de 20 anos. A duration elevada faz o preço reagir com força a mudanças na curva de juros — sobe bastante quando os juros longos caem, e cai na mesma proporção quando sobem."},
+ {tk:"SCHD",nome:"Schwab US Dividend Equity",setor:"ETF Exterior",preco:32.78,chg12:17.4,alvo:null,pot:null,risco:24,riscoLbl:"Médio",recom:"—",sym:"SCHD",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Ações americanas com dividendos consistentes e boa qualidade. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui dividendos trimestralmente, com yield acima da média do mercado.",
+  riscos:["Fica para trás em ciclos liderados por crescimento","Baixa exposição a tecnologia","Concentração em setores maduros","Risco cambial"],
+  sobre:"Seleciona empresas americanas com histórico de pagamento de dividendos e critérios de qualidade como fluxo de caixa e retorno sobre o capital. Tende a oscilar menos que o S&P 500 nas quedas."},
+ {tk:"VNQ",nome:"Vanguard Real Estate",setor:"ETF Exterior",preco:99.33,chg12:7.7,alvo:null,pot:null,risco:30,riscoLbl:"Médio",recom:"—",sym:"VNQ",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"REITs americanos — o equivalente aos fundos imobiliários. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Distribui rendimentos trimestralmente, com yield elevado.",
+  riscos:["Sensibilidade alta a juros longos","Exposição a escritórios, segmento sob pressão estrutural","Alavancagem típica dos REITs","Risco cambial"],
+  sobre:"Reúne REITs, empresas listadas que detêm e operam imóveis nos Estados Unidos: galpões, data centers, torres de telecomunicação, shoppings e residenciais."},
+ {tk:"ARKK",nome:"ARK Innovation",setor:"ETF Exterior",preco:77.38,chg12:3.2,alvo:null,pot:null,risco:68,riscoLbl:"Muito alto",recom:"—",sym:"ARKK",moeda:"USD",
+  analistas:[["Alocação","ETF — sem cobertura individual"]],
+  tese:"Gestão ativa concentrada em empresas de inovação disruptiva. ETFs não têm preço-alvo nem recomendação individual do Research da XP — a decisão é de alocação, não de escolha de papel.",
+  div:"Não costuma distribuir rendimentos.",
+  riscos:["Volatilidade muito acima da do mercado, com quedas superiores a 70% no histórico","Carteira concentrada em poucas posições","Muitas investidas ainda sem lucro","Risco de execução da gestão ativa e risco cambial"],
+  sobre:"Diferente dos demais, é um ETF de gestão ativa: a gestora escolhe as empresas, concentrando a carteira em tecnologias emergentes. O histórico é marcado por oscilações extremas, com altas e quedas muito acima do mercado."}
 ];
 
 let rvSort={k:"pot",dir:-1};
+/* ETFs americanos são cotados em dólar: o ativo carrega `moeda` e todo lugar que
+   imprime preço usa cSym() em vez de "R$" fixo. `sym` sobrepõe o "TK.SA" padrão. */
+function cSym(a){ return (a&&a.moeda==='USD')?'US$':'R$'; }
+function cVal(a,v){ return cSym(a)+' '+Number(v).toFixed(2).replace('.',','); }
+let CUR_MOEDA='R$';
 function recClass(r){return r==="Compra"?"rec-compra":(r==="Neutro"?"rec-neutro":(r==="Venda"?"rec-venda":"rec-na"));}
 function renderRV(){
   const q=(document.getElementById('qrv').value||'').trim().toUpperCase();
@@ -981,11 +1124,11 @@ function renderRV(){
   document.getElementById('rvrows').innerHTML=list.map(a=>{
     const pot=potOf(a);
     const potC=pot==null?'':(pot>=0?'pos':'neg'), potS=pot==null?'—':((pot>=0?'+':'')+pot.toFixed(0)+'%');
-    const alvoS=(a.alvo!=null)?('R$ '+a.alvo.toFixed(2).replace('.',',')):'—';
+    const alvoS=(a.alvo!=null)?cVal(a,a.alvo):'—';
     return `<tr onclick="openAsset('${a.tk}')">
       <td><div class="tk">${a.tk}</div><div class="nm">${a.nome}</div></td>
       <td class="num" style="color:#c2c2c2;font-weight:500">${a.setor}</td>
-      <td class="num">R$ ${a.preco.toFixed(2).replace('.',',')}</td>
+      <td class="num">${cVal(a,a.preco)}</td>
       <td class="num" style="color:var(--yellow)">${alvoS}</td>
       <td class="num ${potC}">${potS}</td>
       <td class="num" style="font-size:11px;color:#c2c2c2">${a.riscoLbl||'—'}</td>
@@ -1096,7 +1239,7 @@ function miniChart(id,series,color,P0,lo,hi){
     g+=`<text x="${padL-5}" y="${(gy+3).toFixed(0)}" fill="#a0a0a0" font-size="8" font-family="Sora" text-anchor="end">${val.toFixed(0)}</text>`;}
   // baseline at P0
   g+=`<line x1="${padL}" y1="${Y(P0).toFixed(1)}" x2="${W-padR}" y2="${Y(P0).toFixed(1)}" stroke="#555" stroke-dasharray="3 3"/>`;
-  g+=`<text x="${padL+2}" y="${(Y(P0)-3).toFixed(0)}" fill="#b0b0b0" font-size="7.5" font-family="Sora">início R$ ${P0.toFixed(2)}</text>`;
+  g+=`<text x="${padL+2}" y="${(Y(P0)-3).toFixed(0)}" fill="#b0b0b0" font-size="7.5" font-family="Sora">início ${CUR_MOEDA} ${P0.toFixed(2)}</text>`;
   const pts=series.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
   // area
   g+=`<polygon points="${padL},${padT+pH} ${pts} ${W-padR},${padT+pH}" fill="${color}22"/>`;
@@ -1120,13 +1263,13 @@ function drawDeriv(){
   document.getElementById('dvLabelB').textContent='('+(retB>=0?'+':'')+retB.toFixed(1)+'%)';
   // strikes
   let teto='sem teto', piso='sem piso';
-  if(s==='covered'||s==='collar') teto='R$ '+(P0*(1+dvParam('teto',10)/100)).toFixed(2);
-  if(s==='put'||s==='collar') piso='R$ '+(P0*(1-dvParam('piso',10)/100)).toFixed(2);
+  if(s==='covered'||s==='collar') teto=CUR_MOEDA+' '+(P0*(1+dvParam('teto',10)/100)).toFixed(2);
+  if(s==='put'||s==='collar') piso=CUR_MOEDA+' '+(P0*(1-dvParam('piso',10)/100)).toFixed(2);
   if(s==='xpfence'){ teto='+'+dvParam('teto',33).toFixed(2)+'% (se romper '+dvParam('bar',50).toFixed(0)+'%)';
-                     piso='R$ '+(P0*(1-dvParam('prot',20)/100)).toFixed(2)+' (−'+dvParam('prot',20).toFixed(0)+'%)'; }
-  if(s==='xpprot'){  teto='ilimitado ('+dvParam('part',1.5)+'x)'; piso='R$ '+P0.toFixed(2)+' (capital protegido)'; }
+                     piso=CUR_MOEDA+' '+(P0*(1-dvParam('prot',20)/100)).toFixed(2)+' (−'+dvParam('prot',20).toFixed(0)+'%)'; }
+  if(s==='xpprot'){  teto='ilimitado ('+dvParam('part',1.5)+'x)'; piso=CUR_MOEDA+' '+P0.toFixed(2)+' (capital protegido)'; }
   if(s==='xptaxa'){  teto='+'+dvParam('taxa',12.2).toFixed(2)+'% (taxa pré)';
-                     piso='R$ '+(P0*(1-dvParam('barq',20)/100)).toFixed(2)+' (barreira)'; }
+                     piso=CUR_MOEDA+' '+(P0*(1-dvParam('barq',20)/100)).toFixed(2)+' (barreira)'; }
   if(s==='xpspread'){teto='+'+(dvParam('kf',15)-dvParam('ki',8.94)).toFixed(2)+'%';
                      piso='perda máx. '+dvParam('prem',4.94).toFixed(2)+'% (prêmio)'; }
   document.getElementById('dvKpis').innerHTML=`
@@ -1171,8 +1314,9 @@ function openAsset(tk){
   document.getElementById('dTicker').textContent=a.tk;
   document.getElementById('dName').textContent=a.nome+' · '+a.setor;
   const rb=document.getElementById('dRecomBadge'); rb.innerHTML=`<span class="badge-rec ${recClass(a.recom)}" style="font-size:12px;padding:6px 14px">${a.recom}</span>`;
-  document.getElementById('dPreco').textContent='R$ '+a.preco.toFixed(2).replace('.',',');
-  document.getElementById('dAlvo').textContent=(alvo!=null)?('R$ '+alvo.toFixed(2).replace('.',',')):'—';
+  CUR_MOEDA=cSym(a);
+  document.getElementById('dPreco').textContent=cVal(a,a.preco);
+  document.getElementById('dAlvo').textContent=(alvo!=null)?cVal(a,alvo):'—';
   const pe=document.getElementById('dPot');
   if(pot!=null){pe.textContent=(pot>=0?'+':'')+pot.toFixed(2).replace('.',',')+'%'; pe.style.color=pot>=0?'var(--green)':'var(--red)';}
   else{pe.textContent='—'; pe.style.color='var(--muted)';}
@@ -2484,9 +2628,10 @@ async function yahooSearchSAO(q){
 }
 /* cotação de um ativo com auto-correção de código */
 async function quoteAsset(a){
-  var sym=SYMCACHE[a.tk]||SYMFIX[a.tk]||(a.tk+'.SA');
+  /* ETFs listados nos EUA usam o próprio ticker, sem o sufixo .SA da B3. */
+  var sym=a.sym||SYMCACHE[a.tk]||SYMFIX[a.tk]||(a.tk+'.SA');
   var d=await yChart(sym,'1y','1mo');
-  if(d&&d.price){ if(sym!==a.tk+'.SA'&&!SYMCACHE[a.tk]){ SYMCACHE[a.tk]=sym; saveSym(); } return d; }
+  if(d&&d.price){ if(!a.sym&&sym!==a.tk+'.SA'&&!SYMCACHE[a.tk]){ SYMCACHE[a.tk]=sym; saveSym(); } return d; }
   var alt=await yahooSearchSAO(a.nome||a.tk);
   if(alt&&alt!==sym){
     d=await yChart(alt,'1y','1mo');
