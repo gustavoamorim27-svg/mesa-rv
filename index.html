@@ -273,7 +273,15 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .rc-btn:hover{border-color:var(--yellow);color:var(--yellow)}
 .rc-btn.rc-del:hover{border-color:var(--red);color:var(--red)}
 .rc-mth{background:transparent;border:none;color:#fff}
-.imp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.imp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.imp-setores{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.imp-secbloco{}
+.imp-sechead{display:flex;align-items:center;gap:6px;font-family:'Sora';font-size:11px;font-weight:700;letter-spacing:.3px;color:#efefef}
+.imp-sechead i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.imp-secsub{color:#9a9a9a;font-weight:600;font-size:10.5px;letter-spacing:0}
+.imp-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.imp-secrow td{background:var(--panel-2);font-family:'Sora';font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#cfcfcf;padding:6px 8px!important}
+.imp-secrow td.num{color:#efefef}
 .imp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11.5px;color:#d4d4d4;white-space:nowrap}
 .imp-chip i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .imp-chip b{color:#fff;font-weight:700}
@@ -1847,12 +1855,14 @@ function impNum(v){
 var IMP_TICKER=/^[A-Z]{4}\d{1,2}$/;   /* PETR4, ITSA4, IVVB11, AAPL34... */
 function impAgrupa(list){
   /* NUNCA somar o mesmo ativo duas vezes: a "Posição Consolidada" repete a mesma
-     posição em mais de uma visão/seção do arquivo. Somar inflava o patrimônio
-     (aparecia dobrado ou quintuplicado). Ficamos com a maior ocorrência. */
+     posição em várias visões do arquivo. Somar inflava o patrimônio (2x/5x).
+     Ficamos com a PRIMEIRA ocorrência — a tabela detalhada de custódia vem antes
+     das visões agregadas. Guardar a MAIOR (versão anterior) deixava um FII com
+     mais dinheiro do que a carteira toda quando uma visão trazia valor acumulado. */
   var m={},ord=[],dup=0;
   list.forEach(function(p){
     if(m[p[0]]==null){ m[p[0]]=p[1]; ord.push(p[0]); }
-    else { dup++; if(p[1]>m[p[0]]) m[p[0]]=p[1]; }
+    else { dup++; }              /* já registrado: ignora as repetições */
   });
   var out=ord.map(function(k){ return [k,m[k]]; });
   out.__dup=dup;
@@ -1874,36 +1884,57 @@ function impTotalArquivo(rows,hdr){
   }
   return null;
 }
+/* Detecta as colunas de UMA linha de cabeçalho. Devolve null se a linha não for
+   um cabeçalho reconhecível. */
+function impCols(row){
+  var cells=row.map(function(c){ return impSemAcento(impTxt(c)).toLowerCase(); });
+  var iTk=-1,iPos=-1,iQtd=-1,iCot=-1;
+  for(var k=0;k<cells.length;k++){
+    var c=cells[k];
+    if(iTk<0 && (c==='ativo'||c==='papel'||c==='produto')) iTk=k;
+    if(iPos<0 && (c==='posicao'||/valor.*(bruto|mercado|posicao)/.test(c)||c==='saldo bruto')) iPos=k;
+    if(iQtd<0 && (/qtd\.?\s*total/.test(c)||c==='quantidade')) iQtd=k;
+    if(iCot<0 && (/ultima\s*cotacao/.test(c)||c==='cotacao'||/preco\s*atual/.test(c))) iCot=k;
+  }
+  if(iTk>=0 && (iPos>=0 || (iQtd>=0&&iCot>=0))) return {tk:iTk,pos:iPos,qtd:iQtd,cot:iCot};
+  return null;
+}
 function parseRows(rows){
   rows=(rows||[]).map(function(r){ return Array.isArray(r)?r:[r]; });
-  /* (a) procura o cabeçalho da XP nas primeiras linhas */
-  var hdr=-1,cTk=-1,cPos=-1,cQtd=-1,cCot=-1;
+  /* (a) A "Posição Consolidada" da XP traz UMA TABELA POR TIPO DE PRODUTO
+     (ações, FIIs, renda fixa...), cada uma com seu próprio cabeçalho e com as
+     colunas em posições DIFERENTES. Antes o código fixava as colunas no primeiro
+     cabeçalho e as usava até o fim do arquivo — nas seções seguintes ele lia a
+     coluna errada e o valor do ativo saía inflado (um FII aparecendo com mais
+     dinheiro do que a carteira inteira). Agora as colunas são REBINDADAS a cada
+     novo cabeçalho encontrado. */
+  var hdr=-1,cols=null;
   for(var i=0;i<rows.length&&i<80;i++){
-    var cells=rows[i].map(function(c){ return impSemAcento(impTxt(c)).toLowerCase(); });
-    var iTk=-1,iPos=-1,iQtd=-1,iCot=-1;
-    for(var k=0;k<cells.length;k++){
-      var c=cells[k];
-      if(iTk<0 && (c==='ativo'||c==='papel'||c==='produto')) iTk=k;
-      if(iPos<0 && (c==='posicao'||/valor.*(bruto|mercado|posicao)/.test(c)||c==='saldo bruto')) iPos=k;
-      if(iQtd<0 && (/qtd\.?\s*total/.test(c)||c==='quantidade')) iQtd=k;
-      if(iCot<0 && (/ultima\s*cotacao/.test(c)||c==='cotacao'||/preco\s*atual/.test(c))) iCot=k;
-    }
-    if(iTk>=0 && (iPos>=0 || (iQtd>=0&&iCot>=0))){ hdr=i;cTk=iTk;cPos=iPos;cQtd=iQtd;cCot=iCot; break; }
+    var c0=impCols(rows[i]);
+    if(c0){ hdr=i; cols=c0; break; }
   }
-  var out=[]; var qtdMap={};
+  var out=[], qtdMap={}, secoes=0, usados=[];
   if(hdr>=0){
     for(var j=hdr+1;j<rows.length;j++){
       var r=rows[j]; if(!r) continue;
-      var tk=impTxt(r[cTk]).toUpperCase();
-      if(!IMP_TICKER.test(tk)) continue;        /* pula seções, totais e linhas vazias */
+      var novo=impCols(r);                       /* começou outra tabela? */
+      if(novo){ cols=novo; secoes++; continue; }
+      var tk=impTxt(r[cols.tk]).toUpperCase();
+      if(!IMP_TICKER.test(tk)) continue;         /* pula seções, totais e linhas vazias */
       var val=NaN;
-      if(cPos>=0) val=impNum(r[cPos]);
-      if(!(val>0)&&cQtd>=0&&cCot>=0){ var q=impNum(r[cQtd]),co=impNum(r[cCot]); if(q>0&&co>0) val=q*co; }
+      if(cols.pos>=0) val=impNum(r[cols.pos]);
+      if(!(val>0)&&cols.qtd>=0&&cols.cot>=0){ var q=impNum(r[cols.qtd]),co=impNum(r[cols.cot]); if(q>0&&co>0) val=q*co; }
       if(!(val>0)) continue;
-      if(cQtd>=0){ var qq=impNum(r[cQtd]); if(qq>0) qtdMap[tk]=qq; }
-      out.push([tk,val]);
+      if(cols.qtd>=0){ var qq=impNum(r[cols.qtd]); if(qq>0) qtdMap[tk]=qq; }
+      out.push([tk,val]); usados.push([tk,val,cols.pos,j]);
+      }
+    if(out.length){
+      var ag=impAgrupa(out);
+      ag.__arquivo=impTotalArquivo(rows,hdr);
+      ag.__qtd=qtdMap;
+      ag.__diag={cabecalhos:1+secoes, primeiraLinha:hdr, colunas:cols, linhas:usados.length};
+      return ag;
     }
-    if(out.length){ var ag=impAgrupa(out); ag.__arquivo=impTotalArquivo(rows,hdr); ag.__qtd=qtdMap; return ag; }
   }
   /* (b) fallback genérico: rótulo + número (mantém a colagem funcionando) */
   rows.forEach(function(r){
@@ -1939,8 +1970,36 @@ function impXP(tk){
       for(var j=0;j<alvos.length;j++) if(ASSETS[i].tk===alvos[j]){ a=ASSETS[i]; break; }
     if(!a) return null;
     var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
-    return {recom:a.recom||'—',alvo:a.alvo,pot:pot};
+    return {recom:a.recom||'—',alvo:a.alvo,pot:pot,setor:a.setor||null};
   }catch(e){ return null; }
+}
+/* Descobre o setor de um ativo importado:
+   1) usa o setor da cobertura da XP (ASSETS), quando existe;
+   2) senão, deduz pelo padrão do ticker (FII, BDR) ou pelo mapa SECTOR_TK;
+   3) senão, cai em "Outros". */
+var IMP_SETOR_CACHE=null;
+function impSetorDe(tk){
+  tk=String(tk||'').toUpperCase();
+  var info=impXP(tk);
+  if(info && info.setor) return info.setor;
+  if(IMP_SETOR_CACHE==null){
+    IMP_SETOR_CACHE={};
+    try{ Object.keys(SECTOR_TK).forEach(function(sec){ SECTOR_TK[sec].forEach(function(t){ IMP_SETOR_CACHE[t]=sec; }); }); }catch(e){}
+  }
+  if(IMP_SETOR_CACHE[tk]) return IMP_SETOR_CACHE[tk];
+  if(/^[A-Z]{4}11$/.test(tk)) return 'Fundos Imobiliários';     /* XXXX11 = FII/ETF */
+  if(/^[A-Z]{4}(34|35|32|33)$/.test(tk)) return 'BDRs / Exterior';
+  return 'Outros';
+}
+/* ordem de exibição dos setores; os não listados vão para o fim, alfabético */
+var IMP_SETOR_ORDEM=['Fundos Imobiliários','Bancos','Financeiro','Energia Elétrica','Elétricas',
+ 'Petróleo & Gás','Petróleo e Combustíveis','Mineração','Mineração e Siderurgia','Siderurgia',
+ 'Papel & Celulose','Papel e Celulose','Bens de Capital','Saneamento','Seguros','Seguradoras',
+ 'Consumo e Varejo','Alimentos e Bebidas','Construção Civil','Shoppings','Transportes',
+ 'Tecnologia, Mídia e Telecom','BDRs / Exterior','Outros'];
+function impOrdemSetor(nome){
+  var i=IMP_SETOR_ORDEM.indexOf(nome);
+  return i<0 ? 900 : i;
 }
 function renderImported(aloc,srcName){
   var msg=document.getElementById('cartImportMsg');
@@ -1951,34 +2010,64 @@ function renderImported(aloc,srcName){
   document.getElementById('cartImpTitle').textContent='Carteira importada';
   document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' ativos · '+impBRL(total);
   drawDonut('cartImpDonut',aloc,'Cliente',impBRL(total));
-  /* chips compactos: código do ativo junto da porcentagem (evita a lista vertical longa) */
-  var ordenado=aloc.map(function(a,i){ return {a:a,i:i}; }).sort(function(x,y){ return y.a[1]-x.a[1]; });
-  document.getElementById('cartImpLegend').className='imp-chips';
-  document.getElementById('cartImpLegend').innerHTML=ordenado.map(function(o){
-    var pct=total?(o.a[1]/total*100):0;
-    return '<span class="imp-chip"><i style="background:'+CART_COLORS[o.i%CART_COLORS.length]+'"></i>'
-      +o.a[0]+' <b>'+pct.toFixed(1).replace('.',',')+'%</b></span>';
+  /* agrupa os ativos por setor; dentro de cada setor, do maior para o menor */
+  var grupos={};
+  aloc.forEach(function(a,i){
+    var sec=impSetorDe(a[0]);
+    (grupos[sec]=grupos[sec]||[]).push({a:a,i:i});
+  });
+  var setores=Object.keys(grupos).sort(function(x,y){
+    var ox=impOrdemSetor(x),oy=impOrdemSetor(y);
+    if(ox!==oy) return ox-oy;
+    return x.localeCompare(y);
+  });
+  setores.forEach(function(sec){ grupos[sec].sort(function(p,q){ return q.a[1]-p.a[1]; }); });
+  /* uma cor por setor: todos os chips e a bolinha da linha herdam a cor do setor */
+  var corSetor={};
+  setores.forEach(function(sec,si){ corSetor[sec]=CART_COLORS[si%CART_COLORS.length]; });
+
+  /* chips agrupados por setor, com subtotal do setor */
+  document.getElementById('cartImpLegend').className='imp-setores';
+  document.getElementById('cartImpLegend').innerHTML=setores.map(function(sec){
+    var sub=grupos[sec].reduce(function(t,o){ return t+o.a[1]; },0);
+    var spct=total?(sub/total*100):0;
+    var chips=grupos[sec].map(function(o){
+      var pct=total?(o.a[1]/total*100):0;
+      return '<span class="imp-chip"><i style="background:'+corSetor[sec]+'"></i>'
+        +o.a[0]+' <b>'+pct.toFixed(1).replace('.',',')+'%</b></span>';
+    }).join('');
+    return '<div class="imp-secbloco">'
+      +'<div class="imp-sechead"><i style="background:'+corSetor[sec]+'"></i>'+sec
+      +' <span class="imp-secsub">'+impBRL(sub)+' · '+spct.toFixed(1).replace('.',',')+'%</span></div>'
+      +'<div class="imp-chips">'+chips+'</div></div>';
   }).join('');
 
   var comRec=0;
-  var linhas=ordenado.map(function(o){ var a=o.a;
+  function linhaAtivo(o,cor){ var a=o.a;
     var info=impXP(a[0]);
-    if(info && info.recom && info.recom!=='—') comRec++;   /* conta só recomendação de fato */
+    if(info && info.recom && info.recom!=='—') comRec++;
     var pct=total?(a[1]/total*100):0;
     var rec=info?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
                 :'<span style="color:#777;font-size:11px">sem cobertura</span>';
     var alvo=(info&&info.alvo!=null)?('R$ '+info.alvo.toFixed(2).replace('.',',')):'—';
     var potTxt='—',potCor='#777';
     if(info&&info.pot!=null){ potTxt=(info.pot>=0?'+':'')+info.pot.toFixed(0)+'%'; potCor=info.pot>=0?'var(--green)':'var(--red)'; }
-    return '<tr><td style="font-weight:700">'+a[0]+'</td>'
+    return '<tr><td style="font-weight:700"><span class="imp-dot" style="background:'+cor+'"></span>'+a[0]+'</td>'
       +'<td class="num">'+impBRL(a[1])+'</td>'
       +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1).replace('.',',')+'%</td>'
       +'<td>'+rec+'</td>'
       +'<td class="num" style="color:var(--yellow)">'+alvo+'</td>'
       +'<td class="num" style="color:'+potCor+'">'+potTxt+'</td></tr>';
+  }
+  var linhas=setores.map(function(sec){
+    var sub=grupos[sec].reduce(function(t,o){ return t+o.a[1]; },0);
+    var spct=total?(sub/total*100):0;
+    var head='<tr class="imp-secrow"><td><span class="imp-dot" style="background:'+corSetor[sec]+'"></span>'+sec+'</td>'
+      +'<td class="num">'+impBRL(sub)+'</td><td class="num">'+spct.toFixed(1).replace('.',',')+'%</td><td colspan="3"></td></tr>';
+    return head+grupos[sec].map(function(o){ return linhaAtivo(o,corSetor[sec]); }).join('');
   }).join('');
   document.getElementById('cartImpTable').innerHTML=
-    '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo</th><th class="num">Posição</th><th class="num">%</th>'
+    '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo / Setor</th><th class="num">Posição</th><th class="num">%</th>'
     +'<th>Recom. XP</th><th class="num">Alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
 
   var extra='';
