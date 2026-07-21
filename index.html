@@ -1850,6 +1850,21 @@ function emPuxarCarteira(){
   });
   buildEmailTables(); genEmail();
 }
+function emSelectEstrut(name,i,o){
+  var atual=emTipo(o);
+  var op=Object.keys(EM_ESTRUT).map(function(k){
+    return '<option value="'+k+'"'+(k===atual?' selected':'')+'>'+EM_ESTRUT[k].nome+'</option>';
+  }).join('');
+  return '<select class="rc-sel" style="min-width:150px" onchange="'+name+'['+i+'].estr=this.value;'+name+'['+i+'].p={};buildEmailTables();genEmail()">'+op+'</select>';
+}
+function emCamposEstrut(name,i,o){
+  var t=EM_ESTRUT[emTipo(o)], p=emParams(o);
+  return '<div style="display:flex;gap:6px;flex-wrap:wrap">'+t.params.map(function(d){
+    return '<label style="display:inline-flex;align-items:center;gap:3px;font-size:10.5px;color:#a2a2a2">'+d.lbl
+      +'<input class="cell" style="width:58px;text-align:center" value="'+p[d.k]+'" '
+      +'oninput="(('+name+'['+i+'].p=('+name+'['+i+'].p||{})),'+name+'['+i+'].p.'+d.k+'=this.value);genEmail()">'+d.suf+'</label>';
+  }).join('')+'</div>';
+}
 function emRows(arr,name,estrut){
   return arr.map((o,i)=>`<tr>
     <td><input class="cell" style="font-family:Sora;font-weight:700" value="${o.ativo}" oninput="${name}[${i}].ativo=this.value;genEmail()"></td>
@@ -1858,23 +1873,19 @@ function emRows(arr,name,estrut){
     <td><input class="cell" style="text-align:center" value="${o.cod}" placeholder="—" oninput="${name}[${i}].cod=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:right" value="${o.preco}" oninput="${name}[${i}].preco=this.value;genEmail()"></td>
     <td class="vcalc" id="val-${name}-${i}">—</td>
-    ${estrut?`<td><input class="cell" style="text-align:center" value="${o.bar==null?50:o.bar}" oninput="${name}[${i}].bar=this.value;genEmail()"></td>
-    <td><input class="cell" style="text-align:center" value="${o.teto==null?33:o.teto}" oninput="${name}[${i}].teto=this.value;genEmail()"></td>
-    <td><input class="cell" style="text-align:center" value="${o.prot==null?20:o.prot}" oninput="${name}[${i}].prot=this.value;genEmail()"></td>`:''}
+    ${estrut?`<td>${emSelectEstrut(name,i,o)}</td><td>${emCamposEstrut(name,i,o)}</td>`:''}
     <td style="width:34px"><button class="x" style="background:none;border:none;color:#6f6f6f;cursor:pointer;font-size:15px" onclick="rmRow('${name}',${i})">×</button></td>
   </tr>`).join('');
 }
 function buildEmailTables(){
   const head='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th><th></th></tr></thead>';
   const headC='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th>'
-    +'<th title="Acima desta alta, o retorno trava no teto">Barreira %</th>'
-    +'<th title="Retorno máximo da estrutura">Teto %</th>'
-    +'<th title="Queda protegida até este nível">Proteção %</th><th></th></tr></thead>';
+    +'<th>Estrutura</th><th>Parâmetros</th><th></th></tr></thead>';
   document.getElementById('vendaTable').innerHTML=head+'<tbody>'+emRows(VENDA,'VENDA')+'</tbody>';
   document.getElementById('compraTable').innerHTML=headC+'<tbody>'+emRows(COMPRA,'COMPRA',true)+'</tbody>';
   try{ emRecalc(); }catch(e){}
 }
-function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado',bar:50,teto:33,prot:20}); buildEmailTables(); genEmail(); }
+function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado',estr:'fence',p:{}}); buildEmailTables(); genEmail(); }
 function rmRow(name,i){ (name==='VENDA'?VENDA:COMPRA).splice(i,1); buildEmailTables(); genEmail(); }
 function padr(s,n){ s=''+s; return s+' '.repeat(Math.max(0,n-s.length)); }
 function emTableTxt(arr){
@@ -1897,20 +1908,66 @@ function emEstrategia(x,bar,teto,prot){
   if(x>=-prot) return 0;       /* queda protegida */
   return x+prot;               /* abaixo da proteção, perde o excedente */
 }
+/* ===== Estruturas da mesa XP =====================================
+   Cada família tem seus próprios parâmetros e sua própria regra de retorno.
+   As fórmulas foram conferidas contra as telas do hub da XP:
+   ITUB4/PETR4 (fence), S&P 500 (capital protegido), EMBJ3 (taxa pré) e
+   WEGE3 (call spread, onde o retorno é sobre o prêmio pago). */
+var EM_ESTRUT={
+  fence:{ nome:'Fence com barreira',
+    params:[{k:'bar',lbl:'Barreira',suf:'%',def:50},{k:'teto',lbl:'Teto se romper',suf:'%',def:33},{k:'prot',lbl:'Proteção',suf:'%',def:20}],
+    calc:function(x,p){ if(x>=p.bar) return p.teto; if(x>0) return x; if(x>=-p.prot) return 0; return x+p.prot; },
+    xs:function(p){ var a=[p.bar+10,p.bar,p.bar-0.01,p.teto,p.teto/2,0,-10];
+                    if(p.prot<100){ a.push(-p.prot,-p.prot-5,-p.prot-10,-p.prot-20); } else { a.push(-25,-30,-40); }
+                    return a; } },
+  protegido:{ nome:'Capital protegido (participação)',
+    params:[{k:'part',lbl:'Participação',suf:'x',def:1.5}],
+    calc:function(x,p){ return x>0 ? x*p.part : 0; },
+    xs:function(p){ return [40,30,20,10,0,-10,-20,-30,-40]; } },
+  taxapre:{ nome:'Taxa pré com barreira de queda',
+    params:[{k:'barq',lbl:'Barreira de queda',suf:'%',def:20},{k:'taxa',lbl:'Taxa pré',suf:'%',def:12.2}],
+    calc:function(x,p){ return (x<=-p.barq)? x : p.taxa; },
+    xs:function(p){ return [p.taxa*2,p.taxa,p.taxa/2,0,-10,-(p.barq-0.01),-p.barq]; } },
+  spread:{ nome:'Call spread (retorno sobre o prêmio)',
+    params:[{k:'ki',lbl:'Strike inicial',suf:'%',def:8.94},{k:'kf',lbl:'Strike final',suf:'%',def:15},{k:'prem',lbl:'Prêmio pago',suf:'%',def:4.94}],
+    calc:function(x,p){ if(!(p.prem>0)) return 0;
+      if(x>=p.kf) return (p.kf-p.ki)/p.prem*100;
+      if(x<=p.ki-p.prem) return -100;
+      return (x-p.ki)/p.prem*100; },
+    xs:function(p){ return [p.kf+10,p.kf,p.ki+(p.kf-p.ki)/2,p.ki,p.ki-p.prem/2,p.ki-p.prem,0,-10,-20]; } }
+};
+function emTipo(o){ return (o&&o.estr&&EM_ESTRUT[o.estr])?o.estr:'fence'; }
+function emParams(o){
+  var t=EM_ESTRUT[emTipo(o)], p={};
+  t.params.forEach(function(d){
+    var v=(o.p&&o.p[d.k]!=null&&o.p[d.k]!=='')?emNum2(o.p[d.k]):d.def;
+    p[d.k]=isFinite(v)?v:d.def;
+  });
+  /* compatibilidade com os campos antigos do fence */
+  if(emTipo(o)==='fence'){
+    if(o.bar!=null&&(!o.p||o.p.bar==null)) p.bar=emNum2(o.bar)||p.bar;
+    if(o.teto!=null&&(!o.p||o.p.teto==null)) p.teto=emNum2(o.teto)||p.teto;
+    if(o.prot!=null&&(!o.p||o.p.prot==null)) p.prot=emNum2(o.prot)||p.prot;
+  }
+  return p;
+}
 function emCenarios(o){
-  var bar=emNum2(o.bar)||50, teto=emNum2(o.teto)||33, prot=emNum2(o.prot)||20;
-  var xs=[bar+10, bar, bar-0.01, teto, teto/2, 0, -10, -prot, -prot-5, -prot-10, -prot-20];
-  var vistos={}, linhas=[];
+  var t=EM_ESTRUT[emTipo(o)], p=emParams(o);
+  var xs=t.xs(p), vistos={}, linhas=[];
+  xs.sort(function(a,b){ return b-a; });
   xs.forEach(function(x){
     x=Math.round(x*100)/100;
-    if(vistos[x]) return; vistos[x]=1;
-    linhas.push([x, Math.round(emEstrategia(x,bar,teto,prot)*100)/100]);
+    if(vistos[x]!=null) return; vistos[x]=1;
+    linhas.push([x, Math.round(t.calc(x,p)*100)/100]);
   });
   return linhas;
 }
 function emTabelaCenarios(o){
   var tk=(o.ativo||'').toUpperCase();
+  var _t=EM_ESTRUT[emTipo(o)], _p=emParams(o);
+  var _desc=_t.params.map(function(d){ return d.lbl+' '+_p[d.k]+d.suf; }).join(' · ');
   var h='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:16px;font-weight:700;margin:18px 0 6px">Cenários de retorno no vencimento</p>';
+  h+='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:12px;color:#555;margin:0 0 8px">'+_t.nome+' — '+_desc+'</p>';
   h+='<table cellspacing="0" cellpadding="7" style="border-collapse:collapse;font-family:Aptos,Calibri,Arial,sans-serif;font-size:13px;min-width:520px">';
   h+='<tr style="background:#e9ecef"><td style="font-weight:600">Variação % de '+tk+'</td><td style="font-weight:600">Variação % da estratégia</td></tr>';
   emCenarios(o).forEach(function(p,i){
