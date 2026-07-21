@@ -1458,10 +1458,26 @@ function parseRows(rows){
 }
 function impBRL(v){ return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 /* cruza o ativo importado com a cobertura da XP (ASSETS) */
+/* A B3 renomeou alguns papéis (CCR->MOTV3, BRF->MBRF3, Embraer->EMBJ3,
+   Copel->CPLE3, JBS->JBSS32). O extrato vem com o código novo, mas a cobertura
+   da XP no app está no código antigo — então traduzimos antes de cruzar. */
+function impAlias(tk){
+  tk=String(tk||'').toUpperCase();
+  var fix={CCRO3:'MOTV3',BRFS3:'MBRF3',EMBR3:'EMBJ3',CPLE6:'CPLE3',JBSS3:'JBSS32'};
+  var inv={};
+  try{
+    var c=JSON.parse(localStorage.getItem('mesaSymMap')||'{}')||{};
+    Object.keys(c).forEach(function(k){ inv[String(c[k]).replace(/\.SA$/i,'').toUpperCase()]=k; });
+  }catch(e){}
+  Object.keys(fix).forEach(function(k){ if(!inv[fix[k]]) inv[fix[k]]=k; });
+  return inv[tk]||tk;
+}
 function impXP(tk){
   try{
+    var alvos=[String(tk).toUpperCase(), impAlias(tk)];
     var a=null;
-    for(var i=0;i<ASSETS.length;i++) if(ASSETS[i].tk===String(tk).toUpperCase()){ a=ASSETS[i]; break; }
+    for(var i=0;i<ASSETS.length&&!a;i++)
+      for(var j=0;j<alvos.length;j++) if(ASSETS[i].tk===alvos[j]){ a=ASSETS[i]; break; }
     if(!a) return null;
     var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
     return {recom:a.recom||'—',alvo:a.alvo,pot:pot};
@@ -1488,7 +1504,7 @@ function renderImported(aloc,srcName){
     if(info&&info.pot!=null){ potTxt=(info.pot>=0?'+':'')+info.pot.toFixed(0)+'%'; potCor=info.pot>=0?'var(--green)':'var(--red)'; }
     return '<tr><td style="font-weight:700">'+a[0]+'</td>'
       +'<td class="num">'+impBRL(a[1])+'</td>'
-      +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1)+'%</td>'
+      +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1).replace('.',',')+'%</td>'
       +'<td>'+rec+'</td>'
       +'<td class="num" style="color:var(--yellow)">'+alvo+'</td>'
       +'<td class="num" style="color:'+potCor+'">'+potTxt+'</td></tr>';
