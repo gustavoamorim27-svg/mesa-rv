@@ -264,6 +264,11 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cart-bar .cb-top .pct{font-family:'Sora';font-weight:700;color:var(--yellow);}
 .cart-bar .cb-track{height:9px;background:#1a1a1a;border-radius:5px;overflow:hidden;}
 .cart-bar .cb-fill{height:100%;border-radius:5px;}
+.imp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.imp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11.5px;color:#d4d4d4;white-space:nowrap}
+.imp-chip i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.imp-chip b{color:#fff;font-weight:700}
+.imp-wrap{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:14px}
 .imp-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .imp-tbl th{font-family:'Sora';font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#a2a2a2;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line-2)}
 .imp-tbl td{padding:8px;border-bottom:1px solid var(--line);color:#e6e6e6}
@@ -1412,9 +1417,33 @@ function impNum(v){
 }
 var IMP_TICKER=/^[A-Z]{4}\d{1,2}$/;   /* PETR4, ITSA4, IVVB11, AAPL34... */
 function impAgrupa(list){
-  var m={},ord=[];
-  list.forEach(function(p){ if(m[p[0]]==null){ m[p[0]]=0; ord.push(p[0]); } m[p[0]]+=p[1]; });
-  return ord.map(function(k){ return [k,m[k]]; });
+  /* NUNCA somar o mesmo ativo duas vezes: a "Posição Consolidada" repete a mesma
+     posição em mais de uma visão/seção do arquivo. Somar inflava o patrimônio
+     (aparecia dobrado ou quintuplicado). Ficamos com a maior ocorrência. */
+  var m={},ord=[],dup=0;
+  list.forEach(function(p){
+    if(m[p[0]]==null){ m[p[0]]=p[1]; ord.push(p[0]); }
+    else { dup++; if(p[1]>m[p[0]]) m[p[0]]=p[1]; }
+  });
+  var out=ord.map(function(k){ return [k,m[k]]; });
+  out.__dup=dup;
+  return out;
+}
+/* lê o total informado no cabeçalho do arquivo, para conferência */
+function impTotalArquivo(rows,hdr){
+  var lim=(hdr>=0?hdr:Math.min(rows.length,40));
+  for(var i=0;i<lim;i++){
+    var r=rows[i]||[];
+    for(var k=0;k<r.length;k++){
+      var t=impSemAcento(impTxt(r[k])).toLowerCase();
+      if(/total\s*investido/.test(t)||/seu\s*patrimonio/.test(t)){
+        var v=impNum(r[k+1]);
+        if(!(v>0)&&rows[i+1]) v=impNum(rows[i+1][k]);
+        if(v>0) return v;
+      }
+    }
+  }
+  return null;
 }
 function parseRows(rows){
   rows=(rows||[]).map(function(r){ return Array.isArray(r)?r:[r]; });
@@ -1444,7 +1473,7 @@ function parseRows(rows){
       if(!(val>0)) continue;
       out.push([tk,val]);
     }
-    if(out.length) return impAgrupa(out);
+    if(out.length){ var ag=impAgrupa(out); ag.__arquivo=impTotalArquivo(rows,hdr); return ag; }
   }
   /* (b) fallback genérico: rótulo + número (mantém a colagem funcionando) */
   rows.forEach(function(r){
@@ -1491,10 +1520,17 @@ function renderImported(aloc,srcName){
   document.getElementById('cartImpTitle').textContent='Carteira importada';
   document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' ativos · '+impBRL(total);
   drawDonut('cartImpDonut',aloc,'Cliente',impBRL(total));
-  document.getElementById('cartImpLegend').innerHTML=legendHTML(aloc,false);
+  /* chips compactos: código do ativo junto da porcentagem (evita a lista vertical longa) */
+  var ordenado=aloc.map(function(a,i){ return {a:a,i:i}; }).sort(function(x,y){ return y.a[1]-x.a[1]; });
+  document.getElementById('cartImpLegend').className='imp-chips';
+  document.getElementById('cartImpLegend').innerHTML=ordenado.map(function(o){
+    var pct=total?(o.a[1]/total*100):0;
+    return '<span class="imp-chip"><i style="background:'+CART_COLORS[o.i%CART_COLORS.length]+'"></i>'
+      +o.a[0]+' <b>'+pct.toFixed(1).replace('.',',')+'%</b></span>';
+  }).join('');
 
   var comRec=0;
-  var linhas=aloc.slice().sort(function(a,b){ return b[1]-a[1]; }).map(function(a){
+  var linhas=ordenado.map(function(o){ var a=o.a;
     var info=impXP(a[0]);
     if(info && info.recom && info.recom!=='—') comRec++;   /* conta só recomendação de fato */
     var pct=total?(a[1]/total*100):0;
@@ -1511,11 +1547,19 @@ function renderImported(aloc,srcName){
       +'<td class="num" style="color:'+potCor+'">'+potTxt+'</td></tr>';
   }).join('');
   document.getElementById('cartImpTable').innerHTML=
-    '<table class="imp-tbl"><thead><tr><th>Ativo</th><th class="num">Posição</th><th class="num">% da carteira</th>'
-    +'<th>Recom. XP</th><th class="num">Preço-alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+    '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo</th><th class="num">Posição</th><th class="num">%</th>'
+    +'<th>Recom. XP</th><th class="num">Alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
 
+  var extra='';
+  if(aloc.__dup) extra+=' <span style="color:#a2a2a2">'+aloc.__dup+' linha(s) repetida(s) do arquivo foram ignoradas.</span>';
+  if(aloc.__arquivo>0){
+    var dif=Math.abs(total-aloc.__arquivo)/aloc.__arquivo;
+    extra+= (dif>0.02)
+      ? ' <span style="color:var(--yellow)">Atenção: o arquivo informa '+impBRL(aloc.__arquivo)+' de total investido — confira.</span>'
+      : ' <span style="color:#a2a2a2">Confere com o total do arquivo ('+impBRL(aloc.__arquivo)+').</span>';
+  }
   msg.innerHTML='<span style="color:var(--green)">Importado: '+aloc.length+' ativos · '+impBRL(total)+'.</span>'
-    +' <span style="color:#a2a2a2">'+comRec+' com recomendação da XP; os demais aparecem como “—” porque ainda não têm recomendação preenchida na base.</span>';
+    +' <span style="color:#a2a2a2">'+comRec+' com recomendação da XP.</span>'+extra;
 }
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
