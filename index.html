@@ -865,6 +865,12 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
               <option value="covered">Financiamento (venda coberta / covered call)</option>
               <option value="put">Put de proteção (protective put)</option>
               <option value="collar">Collar / Fence</option>
+              <optgroup label="Operações da mesa XP">
+                <option value="xpfence">Fence com barreira (ITUB4 / PETR4)</option>
+                <option value="xpprot">Capital protegido com participação (S&amp;P 500)</option>
+                <option value="xptaxa">Taxa pré com barreira de queda (EMBJ3)</option>
+                <option value="xpspread">Call spread / booster (WEGE3)</option>
+              </optgroup>
             </select>
           </div>
           <div id="dvParams" class="dv-params"></div>
@@ -1021,6 +1027,12 @@ const DV_STRUCTS={
   covered:{params:[{k:'teto',lbl:'Teto (call) % acima',def:10},{k:'premio',lbl:'Prêmio recebido %',def:3}]},
   put:{params:[{k:'piso',lbl:'Piso (put) % abaixo',def:10},{k:'premio',lbl:'Prêmio pago %',def:3}]},
   collar:{params:[{k:'piso',lbl:'Piso % abaixo',def:10},{k:'teto',lbl:'Teto % acima',def:10},{k:'premio',lbl:'Prêmio líquido %',def:0}]},
+  /* Operações da mesa XP — as mesmas famílias da aba E-mail Cliente (EM_ESTRUT),
+     aqui aplicadas ao caminho simulado de 12 meses do ativo. */
+  xpfence:{params:[{k:'bar',lbl:'Barreira %',def:50},{k:'teto',lbl:'Teto se romper %',def:33},{k:'prot',lbl:'Proteção %',def:20}]},
+  xpprot:{params:[{k:'part',lbl:'Participação (x)',def:1.5}]},
+  xptaxa:{params:[{k:'barq',lbl:'Barreira de queda %',def:20},{k:'taxa',lbl:'Taxa pré %',def:12.2}]},
+  xpspread:{params:[{k:'ki',lbl:'Strike inicial %',def:8.94},{k:'kf',lbl:'Strike final %',def:15},{k:'prem',lbl:'Prêmio pago %',def:4.94}]},
 };
 function renderDerivParams(){
   const s=document.getElementById('dvStruct').value;
@@ -1034,6 +1046,25 @@ function dvPayoff(s,P,P0){
   if(s==='covered'){const Kc=P0*(1+dvParam('teto',10)/100), prem=P0*dvParam('premio',3)/100; return Math.min(P,Kc)-P0+prem;}
   if(s==='put'){const Kp=P0*(1-dvParam('piso',10)/100), prem=P0*dvParam('premio',3)/100; return Math.max(P,Kp)-P0-prem;}
   if(s==='collar'){const Kp=P0*(1-dvParam('piso',10)/100), Kc=P0*(1+dvParam('teto',10)/100), net=P0*dvParam('premio',0)/100; return Math.max(Kp,Math.min(P,Kc))-P0+net;}
+  /* ---- operações da mesa XP: raciocinam em % de variação do ativo ---- */
+  /* EPS: (P/P0-1)*100 para P0*(1-0.20) devolve -19.999999999999996, e sem
+     tolerância a barreira nunca "toca" exatamente no nível configurado. */
+  const EPS=1e-9;
+  const x=(P/P0-1)*100; let y=null;
+  if(s==='xpfence'){
+    const bar=dvParam('bar',50), teto=dvParam('teto',33), prot=dvParam('prot',20);
+    y = (x>=bar-EPS)? teto : (x>EPS? x : (x>=-prot-EPS? 0 : x+prot));
+  }
+  else if(s==='xpprot'){ y = x>0 ? x*dvParam('part',1.5) : 0; }
+  else if(s==='xptaxa'){ const barq=dvParam('barq',20); y = (x<=-barq+EPS)? x : dvParam('taxa',12.2); }
+  else if(s==='xpspread'){
+    /* No gráfico o retorno é sobre o valor investido no ativo (ganho máx = kf-ki,
+       perda máx = o prêmio). Na aba E-mail Cliente a mesma estrutura aparece em
+       % DO PRÊMIO, que é como a XP publica — por isso os números lá são maiores. */
+    const ki=dvParam('ki',8.94), kf=dvParam('kf',15), prem=dvParam('prem',4.94);
+    y = Math.max(-prem, Math.min(x>=kf-EPS?kf-ki:x-ki, kf-ki));
+  }
+  if(y!==null) return P0*y/100;
   return base;
 }
 function miniChart(id,series,color,P0,lo,hi){
@@ -1072,6 +1103,13 @@ function drawDeriv(){
   let teto='sem teto', piso='sem piso';
   if(s==='covered'||s==='collar') teto='R$ '+(P0*(1+dvParam('teto',10)/100)).toFixed(2);
   if(s==='put'||s==='collar') piso='R$ '+(P0*(1-dvParam('piso',10)/100)).toFixed(2);
+  if(s==='xpfence'){ teto='+'+dvParam('teto',33).toFixed(2)+'% (se romper '+dvParam('bar',50).toFixed(0)+'%)';
+                     piso='R$ '+(P0*(1-dvParam('prot',20)/100)).toFixed(2)+' (−'+dvParam('prot',20).toFixed(0)+'%)'; }
+  if(s==='xpprot'){  teto='ilimitado ('+dvParam('part',1.5)+'x)'; piso='R$ '+P0.toFixed(2)+' (capital protegido)'; }
+  if(s==='xptaxa'){  teto='+'+dvParam('taxa',12.2).toFixed(2)+'% (taxa pré)';
+                     piso='R$ '+(P0*(1-dvParam('barq',20)/100)).toFixed(2)+' (barreira)'; }
+  if(s==='xpspread'){teto='+'+(dvParam('kf',15)-dvParam('ki',8.94)).toFixed(2)+'%';
+                     piso='perda máx. '+dvParam('prem',4.94).toFixed(2)+'% (prêmio)'; }
   document.getElementById('dvKpis').innerHTML=`
     <div class="k"><div class="lbl">Ação pura (12m)</div><div class="val" style="color:#5aa0ff">${(retA>=0?'+':'')+retA.toFixed(1)}%</div></div>
     <div class="k"><div class="lbl">Com estrutura (12m)</div><div class="val" style="color:var(--yellow)">${(retB>=0?'+':'')+retB.toFixed(1)}%</div></div>
@@ -1081,7 +1119,11 @@ function drawDeriv(){
     none:'Ação pura: você captura 100% da alta e 100% da queda, sem custo e sem proteção.',
     covered:'Financiamento: você recebe o prêmio (colchão na queda e renda), mas abre mão da alta acima do teto. Ganha em mercado de lado ou leve alta; perde parte do upside numa disparada.',
     put:'Put de proteção: você paga um prêmio que limita a queda a partir do piso, mantendo a alta. Custa caro se a ação sobe (o prêmio vira despesa); vale a pena se cair forte.',
-    collar:'Collar/Fence: piso e teto ao mesmo tempo, geralmente a custo baixo. Protege a queda, mas limita a alta acima do teto — ideal para quem quer dormir tranquilo abrindo mão do topo.'
+    collar:'Collar/Fence: piso e teto ao mesmo tempo, geralmente a custo baixo. Protege a queda, mas limita a alta acima do teto — ideal para quem quer dormir tranquilo abrindo mão do topo.',
+    xpfence:'Fence com barreira (modelo ITUB4 / PETR4): acompanha a alta 1:1 até a barreira; se a barreira for tocada, o ganho trava no teto. Na queda, nada se perde até o nível de proteção — abaixo disso passa a perder o excedente. Proteção em 100% significa capital totalmente protegido.',
+    xpprot:'Capital protegido com participação (modelo S&P 500): participa da alta multiplicada pela participação, sem teto, e no vencimento não perde capital se o ativo cair. O custo está embutido — o dinheiro fica preso até o vencimento.',
+    xptaxa:'Taxa pré com barreira de queda (modelo EMBJ3): paga uma taxa fixa combinada desde que o ativo não caia até a barreira. Se a barreira for atingida, o investidor passa a acompanhar integralmente a queda — o ganho é limitado à taxa, mas o risco na ponta ruim é o do ativo.',
+    xpspread:'Call spread / booster (modelo WEGE3): só começa a ganhar a partir do strike inicial e trava no strike final; se o ativo não chegar lá, perde-se o prêmio pago. Aqui o gráfico mostra o resultado sobre o valor do ativo — na aba E-mail Cliente a mesma operação aparece em % do prêmio, que é como a XP publica.'
   };
   document.getElementById('dvNote').textContent=notes[s];
 }
