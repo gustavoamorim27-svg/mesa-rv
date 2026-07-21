@@ -264,6 +264,9 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cart-bar .cb-top .pct{font-family:'Sora';font-weight:700;color:var(--yellow);}
 .cart-bar .cb-track{height:9px;background:#1a1a1a;border-radius:5px;overflow:hidden;}
 .cart-bar .cb-fill{height:100%;border-radius:5px;}
+.em-tot{display:flex;justify-content:flex-end;gap:18px;flex-wrap:wrap;margin:8px 2px 0;font-size:12.5px;color:#a2a2a2}
+.em-tot b{color:var(--yellow);font-family:'Sora';font-weight:800;font-size:14px}
+.em-table td.vcalc{text-align:right;color:#8fdcae;font-variant-numeric:tabular-nums;font-size:12px}
 .rc-sel{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;width:100%}
 .xls td.acomp{text-align:center;font-size:11.5px;font-weight:700}
 .rc-btn{background:var(--panel-2);border:1px solid var(--line-2);color:#d4d4d4;border-radius:7px;padding:3px 9px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap}
@@ -680,13 +683,16 @@ XP Investimentos | Você no comando da sua vida financeira</textarea></div>
     </div>
 
     <div class="section-label"><span class="dot"></span><span>ATIVOS PARA VENDA</span><span class="ln"></span>
-      <div class="em-inline"><label>Código do cliente</label><input id="emCodCli" placeholder="ex.: 001234" oninput="genEmail()"></div>
+      <div class="em-inline"><label>Código do cliente</label><input id="emCodCli" placeholder="ex.: 001234" oninput="emAplicarCod()"></div>
+      <button class="btn" style="padding:5px 12px" onclick="emPuxarCarteira()" title="Traz os ativos da carteira importada na aba Carteiras">↓ Puxar da carteira</button>
       <button class="btn" style="padding:5px 12px" onclick="addRow('venda')">+ Linha</button></div>
     <div class="card" style="padding:0;overflow:hidden"><table class="rvtable em-table" id="vendaTable"></table></div>
+    <div class="em-tot" id="totVenda"></div>
 
     <div class="section-label"><span class="dot"></span><span>ATIVOS PARA ENTRADA</span><span class="ln"></span><button class="btn" style="padding:5px 12px" onclick="addRow('compra')">+ Linha</button></div>
     <div class="em-field" style="margin-bottom:10px"><input id="emCompraNote" value="Escolhemos papéis que têm perspectiva de crescimento e pagamento de dividendos!" oninput="genEmail()" style="width:100%"></div>
     <div class="card" style="padding:0;overflow:hidden"><table class="rvtable em-table" id="compraTable"></table></div>
+    <div class="em-tot" id="totCompra"></div>
 
     <div class="section-label"><span class="dot"></span><span>TERMO DE CIÊNCIA DE OPERAÇÃO ESTRUTURADA</span><span class="ln"></span></div>
     <div class="card">
@@ -1595,7 +1601,7 @@ function parseRows(rows){
     }
     if(iTk>=0 && (iPos>=0 || (iQtd>=0&&iCot>=0))){ hdr=i;cTk=iTk;cPos=iPos;cQtd=iQtd;cCot=iCot; break; }
   }
-  var out=[];
+  var out=[]; var qtdMap={};
   if(hdr>=0){
     for(var j=hdr+1;j<rows.length;j++){
       var r=rows[j]; if(!r) continue;
@@ -1605,9 +1611,10 @@ function parseRows(rows){
       if(cPos>=0) val=impNum(r[cPos]);
       if(!(val>0)&&cQtd>=0&&cCot>=0){ var q=impNum(r[cQtd]),co=impNum(r[cCot]); if(q>0&&co>0) val=q*co; }
       if(!(val>0)) continue;
+      if(cQtd>=0){ var qq=impNum(r[cQtd]); if(qq>0) qtdMap[tk]=qq; }
       out.push([tk,val]);
     }
-    if(out.length){ var ag=impAgrupa(out); ag.__arquivo=impTotalArquivo(rows,hdr); return ag; }
+    if(out.length){ var ag=impAgrupa(out); ag.__arquivo=impTotalArquivo(rows,hdr); ag.__qtd=qtdMap; return ag; }
   }
   /* (b) fallback genérico: rótulo + número (mantém a colagem funcionando) */
   rows.forEach(function(r){
@@ -1650,6 +1657,7 @@ function renderImported(aloc,srcName){
   var msg=document.getElementById('cartImportMsg');
   if(!aloc.length){ msg.innerHTML='<span style="color:var(--red)">Não encontrei ativos. Aceito a “Posição Consolidada” da XP (.xlsx) ou duas colunas: ativo e valor.</span>'; return; }
   var total=aloc.reduce(function(s,a){return s+a[1];},0);
+  window.CART_IMPORT={aloc:aloc, qtd:(aloc.__qtd||{})};   /* usado pelo botão da aba E-mail */
   document.getElementById('cartImportCard').style.display='block';
   document.getElementById('cartImpTitle').textContent='Carteira importada';
   document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' ativos · '+impBRL(total);
@@ -1774,6 +1782,69 @@ let COMPRA=[
   {ativo:'EQTL3',op:'C',qtd:'',cod:'',preco:'A Mercado'},
   {ativo:'VALE3',op:'C',qtd:'',cod:'',preco:'A Mercado'},
 ];
+/* preço de mercado do ativo (usa a cobertura/cotações já carregadas) */
+function emPrecoDe(tk){
+  try{
+    var alvos=[String(tk||'').toUpperCase()];
+    if(typeof impAlias==='function') alvos.push(impAlias(tk));
+    for(var i=0;i<ASSETS.length;i++)
+      for(var j=0;j<alvos.length;j++)
+        if(ASSETS[i].tk===alvos[j] && ASSETS[i].preco>0) return ASSETS[i].preco;
+  }catch(e){}
+  return null;
+}
+/* valor da linha = quantidade × (preço digitado, se numérico, senão preço de mercado) */
+function emValorLinha(o){
+  var q=(typeof rcNum==='function')?rcNum(o.qtd):parseFloat(o.qtd);
+  if(!(q>0)) return null;
+  var p=(typeof rcNum==='function')?rcNum(o.preco):NaN;
+  if(!(p>0)) p=emPrecoDe(o.ativo);
+  if(!(p>0)) return null;
+  return q*p;
+}
+function emBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+/* recalcula a coluna de valor e os totais (fica só na tela, não vai no e-mail) */
+function emRecalc(){
+  [['VENDA',VENDA,'totVenda','a vender'],['COMPRA',COMPRA,'totCompra','a comprar']].forEach(function(p){
+    var nome=p[0],arr=p[1],box=document.getElementById(p[2]),rot=p[3];
+    var tot=0,semPreco=0;
+    arr.forEach(function(o,i){
+      var v=emValorLinha(o);
+      if(v==null){ if(o.ativo&&o.qtd) semPreco++; } else tot+=v;
+      var c=document.getElementById('val-'+nome+'-'+i);
+      if(c) c.textContent=(v==null)?'—':emBRL(v);
+    });
+    if(box) box.innerHTML='<span>Total '+rot+': <b>'+emBRL(tot)+'</b></span>'
+      +(semPreco?'<span style="color:#c9a227">'+semPreco+' sem cotação — informe o preço</span>':'');
+  });
+  var tv=0,tc=0;
+  VENDA.forEach(function(o){ var v=emValorLinha(o); if(v) tv+=v; });
+  COMPRA.forEach(function(o){ var v=emValorLinha(o); if(v) tc+=v; });
+  var box=document.getElementById('totCompra');
+  if(box) box.innerHTML+='<span>Realocação líquida: <b>'+emBRL(tc-tv)+'</b></span>';
+}
+/* replica o código do cliente em todos os ativos das duas tabelas */
+function emAplicarCod(){
+  var cod=(document.getElementById('emCodCli')||{}).value||'';
+  VENDA.forEach(function(o){ o.cod=cod; });
+  COMPRA.forEach(function(o){ o.cod=cod; });
+  buildEmailTables(); genEmail();
+}
+/* traz os ativos da carteira importada (aba Carteiras) para a lista de venda */
+function emPuxarCarteira(){
+  var ci=window.CART_IMPORT;
+  if(!ci||!ci.aloc||!ci.aloc.length){
+    alert('Importe primeiro a carteira do cliente na aba "Carteiras" (arquivo da XP ou colando os dados).');
+    return;
+  }
+  var cod=(document.getElementById('emCodCli')||{}).value||'';
+  VENDA=ci.aloc.map(function(a){
+    var tk=a[0], q=ci.qtd[tk];
+    if(!(q>0)){ var p=emPrecoDe(tk); if(p>0) q=Math.floor(a[1]/p); }   /* sem qtd no arquivo: estima pela posição */
+    return {ativo:tk, op:'V', qtd:(q>0?String(q):''), cod:cod, preco:'A Mercado'};
+  });
+  buildEmailTables(); genEmail();
+}
 function emRows(arr,name){
   return arr.map((o,i)=>`<tr>
     <td><input class="cell" style="font-family:Sora;font-weight:700" value="${o.ativo}" oninput="${name}[${i}].ativo=this.value;genEmail()"></td>
@@ -1781,11 +1852,12 @@ function emRows(arr,name){
     <td><input class="cell" style="text-align:right" value="${o.qtd}" oninput="${name}[${i}].qtd=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:center" value="${o.cod}" placeholder="—" oninput="${name}[${i}].cod=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:right" value="${o.preco}" oninput="${name}[${i}].preco=this.value;genEmail()"></td>
+    <td class="vcalc" id="val-${name}-${i}">—</td>
     <td style="width:34px"><button class="x" style="background:none;border:none;color:#6f6f6f;cursor:pointer;font-size:15px" onclick="rmRow('${name}',${i})">×</button></td>
   </tr>`).join('');
 }
 function buildEmailTables(){
-  const head='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th></th></tr></thead>';
+  const head='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th><th></th></tr></thead>';
   document.getElementById('vendaTable').innerHTML=head+'<tbody>'+emRows(VENDA,'VENDA')+'</tbody>';
   document.getElementById('compraTable').innerHTML=head+'<tbody>'+emRows(COMPRA,'COMPRA')+'</tbody>';
 }
@@ -1810,6 +1882,7 @@ function genEmail(){
   t+=`Os ativos que vamos entrar:\n${compraNote}\n\n${emTableTxt(COMPRA)}\n`;
   t+=`Termo de Ciência de Operação Estruturada\n${termo}\n\nAt,\n\n${sign}`;
   document.getElementById('emOut').value=t;
+  try{ emRecalc(); }catch(e){}
 }
 function copyEmail(){
   genEmail();
