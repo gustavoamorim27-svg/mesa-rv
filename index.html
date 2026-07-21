@@ -697,11 +697,13 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
 
     <div class="section-label"><span class="dot"></span><span>E-MAIL GERADO</span><span class="ln"></span></div>
     <div class="card">
-      <div class="sub" style="margin-bottom:8px">Pré-visualização — é exatamente assim que vai chegar no cliente:</div>
-      <div id="emPreview" style="background:#fff;color:#000;padding:22px;border-radius:8px;max-height:520px;overflow:auto"></div>
+      <div class="sub" style="margin-bottom:8px">Pré-visualização — <b style="color:var(--yellow)">clique no texto para editar</b> direto aqui antes de copiar. Como vai chegar no cliente:</div>
+      <div id="emPreview" contenteditable="true" spellcheck="true" oninput="emPreviewEdit()" style="background:#fff;color:#000;padding:22px;border-radius:8px;max-height:520px;overflow:auto;outline:none"></div>
+      <div id="emEditAviso" class="sub" style="display:none;margin-top:8px;color:var(--yellow)">✎ Você editou o e-mail à mão. Mudanças nos campos acima não atualizam mais a prévia — clique em <b>Regerar do zero</b> se quiser recomeçar do template.</div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn primary" onclick="copyEmail()">Copiar e-mail (com formatação)</button>
         <button class="btn" onclick="copyEmailTexto()">Copiar como texto</button>
+        <button class="btn" onclick="regerarEmail()">Regerar do zero</button>
         <button class="btn" onclick="window.print()">Imprimir / PDF</button>
       </div>
       <details style="margin-top:12px"><summary class="sub" style="cursor:pointer">Ver versão em texto puro</summary>
@@ -2410,6 +2412,18 @@ function genEmailHTML(){
   h+='<p>At,</p><p>'+String(sign).replace(/\n/g,'<br>')+'</p></div>';
   return h;
 }
+/* Se o usuário editou a prévia à mão, paramos de sobrescrevê-la a cada tecla
+   nos campos — senão a edição seria apagada. `regerarEmail()` zera esse estado. */
+var emEdited=false;
+function emPreviewEdit(){
+  if(!emEdited){ emEdited=true; var a=document.getElementById('emEditAviso'); if(a) a.style.display='block'; }
+}
+function regerarEmail(){
+  emEdited=false;
+  var a=document.getElementById('emEditAviso'); if(a) a.style.display='none';
+  genEmail();
+  var m=document.getElementById('emMsg'); if(m) m.innerHTML='<span style="color:#a2a2a2">Prévia regerada a partir dos campos.</span>';
+}
 function genEmail(){
   const cli=document.getElementById('emCli').value||'cliente';
   const intro=document.getElementById('emIntro').value;
@@ -2422,22 +2436,25 @@ function genEmail(){
   t+=`${emTableTxt(VENDA)}\n`;
   t+=`Os ativos que vamos entrar:\n${compraNote}\n\n${emTableTxt(COMPRA)}\n`;
   t+=`Termo de Ciência de Operação Estruturada\n${termo}\n\nAt,\n\n${sign}`;
-  document.getElementById('emOut').value=t;
+  if(!emEdited) document.getElementById('emOut').value=t;
   try{
     var pv=document.getElementById('emPreview');
-    if(pv) pv.innerHTML=genEmailHTML();
+    if(pv && !emEdited) pv.innerHTML=genEmailHTML();   /* respeita edição manual */
   }catch(e){}
   try{ emRecalc(); }catch(e){}
 }
 async function copyEmail(){
-  genEmail();
+  if(!emEdited) genEmail();
   var msg=document.getElementById('emMsg');
-  /* copia com formatação (HTML) para colar direto no Outlook/Gmail */
+  var pv=document.getElementById('emPreview');
+  /* copia EXATAMENTE o que está na prévia (inclui edições à mão) */
+  var html=pv?pv.innerHTML:genEmailHTML();
+  var texto=pv?(pv.innerText||pv.textContent||''):document.getElementById('emOut').value;
   try{
     if(navigator.clipboard && window.ClipboardItem){
       await navigator.clipboard.write([new ClipboardItem({
-        'text/html': new Blob([genEmailHTML()],{type:'text/html'}),
-        'text/plain': new Blob([document.getElementById('emOut').value],{type:'text/plain'})
+        'text/html': new Blob([html],{type:'text/html'}),
+        'text/plain': new Blob([texto],{type:'text/plain'})
       })]);
       if(msg) msg.innerHTML='<span style="color:var(--green)">E-mail copiado <b>com formatação</b> — cole no Outlook (Ctrl+V) que as tabelas vão junto.</span>';
       return;
@@ -2457,9 +2474,11 @@ async function copyEmail(){
   copyEmailTexto();
 }
 function copyEmailTexto(){
-  genEmail();
-  const ta=document.getElementById('emOut'); ta.select();
-  try{ navigator.clipboard.writeText(ta.value); document.getElementById('emMsg').innerHTML='<span style="color:var(--green)">E-mail copiado para a área de transferência.</span>'; }
+  if(!emEdited) genEmail();
+  var pv=document.getElementById('emPreview');
+  var texto=(emEdited&&pv)?(pv.innerText||pv.textContent||''):document.getElementById('emOut').value;
+  const ta=document.getElementById('emOut'); ta.value=texto; ta.select();
+  try{ navigator.clipboard.writeText(texto); document.getElementById('emMsg').innerHTML='<span style="color:var(--green)">E-mail copiado para a área de transferência.</span>'; }
   catch(e){ document.execCommand&&document.execCommand('copy'); document.getElementById('emMsg').textContent='Selecionado — use Ctrl/Cmd+C para copiar.'; }
 }
 buildEmailTables(); genEmail();
