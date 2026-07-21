@@ -264,6 +264,11 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cart-bar .cb-top .pct{font-family:'Sora';font-weight:700;color:var(--yellow);}
 .cart-bar .cb-track{height:9px;background:#1a1a1a;border-radius:5px;overflow:hidden;}
 .cart-bar .cb-fill{height:100%;border-radius:5px;}
+.imp-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.imp-tbl th{font-family:'Sora';font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#a2a2a2;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line-2)}
+.imp-tbl td{padding:8px;border-bottom:1px solid var(--line);color:#e6e6e6}
+.imp-tbl td.num,.imp-tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.imp-tbl tbody tr:last-child td{border-bottom:none}
 .cart-legend{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
 .cart-legend .cl{display:flex;align-items:center;gap:9px;font-size:12px;}
 .cart-legend .cl i{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
@@ -602,6 +607,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <div class="sub" id="cartImpSub" style="margin-bottom:14px"></div>
         <svg id="cartImpDonut" viewBox="0 0 220 220" style="width:100%;max-width:230px;display:block;margin:0 auto"></svg>
         <div id="cartImpLegend" class="cart-legend"></div>
+        <div id="cartImpTable" style="margin-top:16px;overflow-x:auto"></div>
       </div>
     </div>
     <p class="note-inline">A leitura acontece no seu navegador (o arquivo não sai do computador). Excel (.xlsx) usa uma biblioteca que carrega da internet na primeira vez; <b>CSV funciona 100% offline</b>. Se o Excel não carregar, salve como CSV.</p>
@@ -1386,28 +1392,113 @@ document.getElementById('cartTabs').addEventListener('click',e=>{const b=e.targe
 renderCarteira('conservador');
 
 // ---- Importar carteira (Excel/CSV) ----
+/* ---- Importação de carteira ----------------------------------------------
+   Entende dois formatos:
+   (a) "Posição Consolidada" da XP (.xlsx): preâmbulo de patrimônio, seções
+       ("85,0%|Ações") e cabeçalho só lá pela linha 9, com 12 colunas — o valor
+       em reais fica na coluna "Posição".
+   (b) Colagem simples de 2 colunas (rótulo + número).
+--------------------------------------------------------------------------- */
+function impTxt(v){ return (v==null?'':(''+v)).replace(/\s+/g,' ').trim(); }
+function impSemAcento(s){ try{ return s.normalize('NFD').replace(/[̀-ͯ]/g,''); }catch(e){ return s; } }
+function impNum(v){
+  if(typeof v==='number') return isFinite(v)?v:NaN;
+  var s=impTxt(v); if(!s) return NaN;
+  s=s.replace(/r\$/i,'').replace(/[\s ]/g,'').replace(/%/g,'');
+  if(s.indexOf(',')>=0) s=s.replace(/\./g,'').replace(',','.');          /* 1.234,56 */
+  else if(/^-?\d{1,3}(\.\d{3})+$/.test(s)) s=s.replace(/\./g,'');        /* 1.234    */
+  var n=parseFloat(s);
+  return isFinite(n)?n:NaN;
+}
+var IMP_TICKER=/^[A-Z]{4}\d{1,2}$/;   /* PETR4, ITSA4, IVVB11, AAPL34... */
+function impAgrupa(list){
+  var m={},ord=[];
+  list.forEach(function(p){ if(m[p[0]]==null){ m[p[0]]=0; ord.push(p[0]); } m[p[0]]+=p[1]; });
+  return ord.map(function(k){ return [k,m[k]]; });
+}
 function parseRows(rows){
-  // rows: array of [label, value] (strings). Skip header if value not numeric.
-  const out=[];
-  rows.forEach(r=>{
+  rows=(rows||[]).map(function(r){ return Array.isArray(r)?r:[r]; });
+  /* (a) procura o cabeçalho da XP nas primeiras linhas */
+  var hdr=-1,cTk=-1,cPos=-1,cQtd=-1,cCot=-1;
+  for(var i=0;i<rows.length&&i<80;i++){
+    var cells=rows[i].map(function(c){ return impSemAcento(impTxt(c)).toLowerCase(); });
+    var iTk=-1,iPos=-1,iQtd=-1,iCot=-1;
+    for(var k=0;k<cells.length;k++){
+      var c=cells[k];
+      if(iTk<0 && (c==='ativo'||c==='papel'||c==='produto')) iTk=k;
+      if(iPos<0 && (c==='posicao'||/valor.*(bruto|mercado|posicao)/.test(c)||c==='saldo bruto')) iPos=k;
+      if(iQtd<0 && (/qtd\.?\s*total/.test(c)||c==='quantidade')) iQtd=k;
+      if(iCot<0 && (/ultima\s*cotacao/.test(c)||c==='cotacao'||/preco\s*atual/.test(c))) iCot=k;
+    }
+    if(iTk>=0 && (iPos>=0 || (iQtd>=0&&iCot>=0))){ hdr=i;cTk=iTk;cPos=iPos;cQtd=iQtd;cCot=iCot; break; }
+  }
+  var out=[];
+  if(hdr>=0){
+    for(var j=hdr+1;j<rows.length;j++){
+      var r=rows[j]; if(!r) continue;
+      var tk=impTxt(r[cTk]).toUpperCase();
+      if(!IMP_TICKER.test(tk)) continue;        /* pula seções, totais e linhas vazias */
+      var val=NaN;
+      if(cPos>=0) val=impNum(r[cPos]);
+      if(!(val>0)&&cQtd>=0&&cCot>=0){ var q=impNum(r[cQtd]),co=impNum(r[cCot]); if(q>0&&co>0) val=q*co; }
+      if(!(val>0)) continue;
+      out.push([tk,val]);
+    }
+    if(out.length) return impAgrupa(out);
+  }
+  /* (b) fallback genérico: rótulo + número (mantém a colagem funcionando) */
+  rows.forEach(function(r){
     if(!r||r.length<2) return;
-    let label=(''+r[0]).trim();
-    let raw=(''+r[1]).trim().replace(/r\$/i,'').replace(/\s/g,'').replace(/\./g,'').replace(',','.').replace('%','');
-    let val=parseFloat(raw);
-    if(!label||isNaN(val)) return;
+    var label=impTxt(r[0]); var val=impNum(r[1]);
+    if(!label||!isFinite(val)||val<=0) return;
+    if(/^(total|ativo|papel|produto|posicao)$/i.test(impSemAcento(label))) return;
     out.push([label,val]);
   });
-  return out;
+  return impAgrupa(out);
+}
+function impBRL(v){ return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+/* cruza o ativo importado com a cobertura da XP (ASSETS) */
+function impXP(tk){
+  try{
+    var a=null;
+    for(var i=0;i<ASSETS.length;i++) if(ASSETS[i].tk===String(tk).toUpperCase()){ a=ASSETS[i]; break; }
+    if(!a) return null;
+    var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
+    return {recom:a.recom||'—',alvo:a.alvo,pot:pot};
+  }catch(e){ return null; }
 }
 function renderImported(aloc,srcName){
-  if(!aloc.length){ document.getElementById('cartImportMsg').innerHTML='<span style="color:var(--red)">Não encontrei linhas válidas. Use 2 colunas: rótulo e número.</span>'; return; }
-  const total=aloc.reduce((s,a)=>s+a[1],0);
+  var msg=document.getElementById('cartImportMsg');
+  if(!aloc.length){ msg.innerHTML='<span style="color:var(--red)">Não encontrei ativos. Aceito a “Posição Consolidada” da XP (.xlsx) ou duas colunas: ativo e valor.</span>'; return; }
+  var total=aloc.reduce(function(s,a){return s+a[1];},0);
   document.getElementById('cartImportCard').style.display='block';
   document.getElementById('cartImpTitle').textContent='Carteira importada';
-  document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' itens · total '+total.toLocaleString('pt-BR');
-  drawDonut('cartImpDonut',aloc,'Cliente','importada');
+  document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' ativos · '+impBRL(total);
+  drawDonut('cartImpDonut',aloc,'Cliente',impBRL(total));
   document.getElementById('cartImpLegend').innerHTML=legendHTML(aloc,false);
-  document.getElementById('cartImportMsg').innerHTML='<span style="color:var(--green)">Importado com sucesso ('+aloc.length+' itens).</span>';
+
+  var comRec=0;
+  var linhas=aloc.slice().sort(function(a,b){ return b[1]-a[1]; }).map(function(a){
+    var info=impXP(a[0]); if(info) comRec++;
+    var pct=total?(a[1]/total*100):0;
+    var rec=info?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
+                :'<span style="color:#777;font-size:11px">sem cobertura</span>';
+    var alvo=(info&&info.alvo!=null)?('R$ '+info.alvo.toFixed(2).replace('.',',')):'—';
+    var potTxt='—',potCor='#777';
+    if(info&&info.pot!=null){ potTxt=(info.pot>=0?'+':'')+info.pot.toFixed(0)+'%'; potCor=info.pot>=0?'var(--green)':'var(--red)'; }
+    return '<tr><td style="font-weight:700">'+a[0]+'</td>'
+      +'<td class="num">'+impBRL(a[1])+'</td>'
+      +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1)+'%</td>'
+      +'<td>'+rec+'</td>'
+      +'<td class="num" style="color:var(--yellow)">'+alvo+'</td>'
+      +'<td class="num" style="color:'+potCor+'">'+potTxt+'</td></tr>';
+  }).join('');
+  document.getElementById('cartImpTable').innerHTML=
+    '<table class="imp-tbl"><thead><tr><th>Ativo</th><th class="num">Posição</th><th class="num">% da carteira</th>'
+    +'<th>Recom. XP</th><th class="num">Preço-alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+
+  msg.innerHTML='<span style="color:var(--green)">Importado: '+aloc.length+' ativos · '+impBRL(total)
+    +' · '+comRec+' com recomendação XP.</span>';
 }
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
