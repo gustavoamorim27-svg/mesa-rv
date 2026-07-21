@@ -866,10 +866,10 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
               <option value="put">Put de proteção (protective put)</option>
               <option value="collar">Collar / Fence</option>
               <optgroup label="Operações da mesa XP">
-                <option value="xpfence">Fence com barreira (ITUB4 / PETR4)</option>
-                <option value="xpprot">Capital protegido com participação (S&amp;P 500)</option>
-                <option value="xptaxa">Taxa pré com barreira de queda (EMBJ3)</option>
-                <option value="xpspread">Call spread / booster (WEGE3)</option>
+                <option value="xpfence">Fence com barreira</option>
+                <option value="xpprot">Capital protegido com participação</option>
+                <option value="xptaxa">Cupom pré com barreira de queda</option>
+                <option value="xpspread">Call spread / booster</option>
               </optgroup>
             </select>
           </div>
@@ -1029,17 +1029,28 @@ const DV_STRUCTS={
   collar:{params:[{k:'piso',lbl:'Piso % abaixo',def:10},{k:'teto',lbl:'Teto % acima',def:10},{k:'premio',lbl:'Prêmio líquido %',def:0}]},
   /* Operações da mesa XP — as mesmas famílias da aba E-mail Cliente (EM_ESTRUT),
      aqui aplicadas ao caminho simulado de 12 meses do ativo. */
-  xpfence:{params:[{k:'bar',lbl:'Barreira %',def:50},{k:'teto',lbl:'Teto se romper %',def:33},{k:'prot',lbl:'Proteção %',def:20}]},
-  xpprot:{params:[{k:'part',lbl:'Participação (x)',def:1.5}]},
-  xptaxa:{params:[{k:'barq',lbl:'Barreira de queda %',def:20},{k:'taxa',lbl:'Taxa pré %',def:12.2}]},
-  xpspread:{params:[{k:'ki',lbl:'Strike inicial %',def:8.94},{k:'kf',lbl:'Strike final %',def:15},{k:'prem',lbl:'Prêmio pago %',def:4.94}]},
+  xpfence:{params:[{k:'bar',lbl:'Barreira % acima',def:50},{k:'teto',lbl:'Teto % (se romper)',def:33},{k:'prot',lbl:'Proteção % abaixo',def:20}]},
+  xpprot:{params:[{k:'part',lbl:'Participação (x)',def:1.5},{k:'valor',lbl:'Valor investido R$',def:100000,step:1000}]},
+  xptaxa:{params:[{k:'barq',lbl:'Barreira % abaixo',def:20},{k:'taxa',lbl:'Cupom pré %',def:12.2},
+                  {k:'ko',lbl:'Se romper a barreira',def:'queda',opts:[
+                     {v:'queda',t:'Acompanha a queda integral'},
+                     {v:'excedente',t:'Perde só o que passar da barreira'},
+                     {v:'zero',t:'Devolve o capital (0%)'},
+                     {v:'metade',t:'Acompanha metade da queda'}]}]},
+  xpspread:{params:[{k:'ki',lbl:'Início do ganho % acima',def:8.94},{k:'kf',lbl:'Teto % acima',def:15},{k:'prem',lbl:'Prêmio pago %',def:4.94}]},
 };
 function renderDerivParams(){
   const s=document.getElementById('dvStruct').value;
-  document.getElementById('dvParams').innerHTML=DV_STRUCTS[s].params.map(p=>
-    `<div class="dv-field"><label>${p.lbl}</label><input type="number" id="dv_${p.k}" value="${p.def}" oninput="drawDeriv()"></div>`).join('');
+  document.getElementById('dvParams').innerHTML=DV_STRUCTS[s].params.map(p=>{
+    if(p.opts) return `<div class="dv-field"><label>${p.lbl}</label><select id="dv_${p.k}" style="min-width:230px" onchange="drawDeriv()">`
+      + p.opts.map(o=>`<option value="${o.v}"${o.v===p.def?' selected':''}>${o.t}</option>`).join('') + `</select></div>`;
+    return `<div class="dv-field"><label>${p.lbl}</label><input type="number" id="dv_${p.k}" value="${p.def}"${p.step?' step="'+p.step+'"':''} oninput="drawDeriv()"></div>`;
+  }).join('');
 }
 function dvParam(k,def){const el=document.getElementById('dv_'+k);return el?(parseFloat(el.value)||0):def;}
+/* parâmetro não-numérico (select) */
+function dvOpt(k,def){const el=document.getElementById('dv_'+k);return el?el.value:def;}
+function dvBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function dvPayoff(s,P,P0){
   const base=P-P0;
   if(s==='none') return base;
@@ -1056,7 +1067,15 @@ function dvPayoff(s,P,P0){
     y = (x>=bar-EPS)? teto : (x>EPS? x : (x>=-prot-EPS? 0 : x+prot));
   }
   else if(s==='xpprot'){ y = x>0 ? x*dvParam('part',1.5) : 0; }
-  else if(s==='xptaxa'){ const barq=dvParam('barq',20); y = (x<=-barq+EPS)? x : dvParam('taxa',12.2); }
+  else if(s==='xptaxa'){
+    const barq=dvParam('barq',20), ko=dvOpt('ko','queda');
+    if(x<=-barq+EPS){
+      if(ko==='zero')           y = 0;              /* knock-in só cancela o cupom */
+      else if(ko==='excedente') y = x+barq;         /* perde apenas o que passar da barreira */
+      else if(ko==='metade')    y = x/2;            /* participação de 50% na queda */
+      else                      y = x;              /* acompanha a queda integral */
+    } else y = dvParam('taxa',12.2);
+  }
   else if(s==='xpspread'){
     /* No gráfico o retorno é sobre o valor investido no ativo (ganho máx = kf-ki,
        perda máx = o prêmio). Na aba E-mail Cliente a mesma estrutura aparece em
@@ -1114,16 +1133,26 @@ function drawDeriv(){
     <div class="k"><div class="lbl">Ação pura (12m)</div><div class="val" style="color:#5aa0ff">${(retA>=0?'+':'')+retA.toFixed(1)}%</div></div>
     <div class="k"><div class="lbl">Com estrutura (12m)</div><div class="val" style="color:var(--yellow)">${(retB>=0?'+':'')+retB.toFixed(1)}%</div></div>
     <div class="k"><div class="lbl">Piso protegido</div><div class="val" style="font-size:13px">${piso}</div></div>
-    <div class="k"><div class="lbl">Teto de ganho</div><div class="val" style="font-size:13px">${teto}</div></div>`;
+    <div class="k"><div class="lbl">Teto de ganho</div><div class="val" style="font-size:13px">${teto}</div></div>`
+    + (document.getElementById('dv_valor') ? (function(){
+        /* Simulação em R$: quanto o cliente resgata na estrutura vs. comprando a ação. */
+        const inv=dvParam('valor',100000);
+        const fA=inv*(1+retA/100), fB=inv*(1+retB/100), dif=fB-fA;
+        return `<div class="k" style="grid-column:span 2"><div class="lbl">Entrando com ${dvBRL(inv)} → ação pura</div>`
+          + `<div class="val" style="font-size:15px;color:#5aa0ff">${dvBRL(fA)}</div></div>`
+          + `<div class="k" style="grid-column:span 2"><div class="lbl">Entrando com ${dvBRL(inv)} → com estrutura</div>`
+          + `<div class="val" style="font-size:15px;color:var(--yellow)">${dvBRL(fB)} `
+          + `<span style="font-size:11px;color:${dif>=0?'#4ade80':'#f87171'}">(${dif>=0?'+':'−'}${dvBRL(Math.abs(dif)).replace('R$ ','R$ ')})</span></div></div>`;
+      })() : '');
   const notes={
     none:'Ação pura: você captura 100% da alta e 100% da queda, sem custo e sem proteção.',
     covered:'Financiamento: você recebe o prêmio (colchão na queda e renda), mas abre mão da alta acima do teto. Ganha em mercado de lado ou leve alta; perde parte do upside numa disparada.',
     put:'Put de proteção: você paga um prêmio que limita a queda a partir do piso, mantendo a alta. Custa caro se a ação sobe (o prêmio vira despesa); vale a pena se cair forte.',
     collar:'Collar/Fence: piso e teto ao mesmo tempo, geralmente a custo baixo. Protege a queda, mas limita a alta acima do teto — ideal para quem quer dormir tranquilo abrindo mão do topo.',
-    xpfence:'Fence com barreira (modelo ITUB4 / PETR4): acompanha a alta 1:1 até a barreira; se a barreira for tocada, o ganho trava no teto. Na queda, nada se perde até o nível de proteção — abaixo disso passa a perder o excedente. Proteção em 100% significa capital totalmente protegido.',
-    xpprot:'Capital protegido com participação (modelo S&P 500): participa da alta multiplicada pela participação, sem teto, e no vencimento não perde capital se o ativo cair. O custo está embutido — o dinheiro fica preso até o vencimento.',
-    xptaxa:'Taxa pré com barreira de queda (modelo EMBJ3): paga uma taxa fixa combinada desde que o ativo não caia até a barreira. Se a barreira for atingida, o investidor passa a acompanhar integralmente a queda — o ganho é limitado à taxa, mas o risco na ponta ruim é o do ativo.',
-    xpspread:'Call spread / booster (modelo WEGE3): só começa a ganhar a partir do strike inicial e trava no strike final; se o ativo não chegar lá, perde-se o prêmio pago. Aqui o gráfico mostra o resultado sobre o valor do ativo — na aba E-mail Cliente a mesma operação aparece em % do prêmio, que é como a XP publica.'
+    xpfence:'Fence com barreira: acompanha a alta 1:1 até a barreira; se a barreira for tocada, o ganho trava no teto. Na queda, nada se perde até o nível de proteção — abaixo disso passa a perder o excedente. Proteção em 100% significa capital totalmente protegido.',
+    xpprot:'Capital protegido com participação: participa da alta multiplicada pela participação, sem teto, e no vencimento não perde capital se o ativo cair. O custo está embutido — o dinheiro fica preso até o vencimento.',
+    xptaxa:'Cupom pré com barreira de queda: paga um cupom fixo combinado desde que o ativo não caia até a barreira. O que acontece se a barreira for rompida depende de como a operação foi montada — por isso o campo ao lado permite escolher entre acompanhar a queda inteira, perder só o excedente abaixo da barreira, ter o capital devolvido ou participar de metade da queda. O ganho é sempre limitado ao cupom.',
+    xpspread:'Call spread / booster: só começa a ganhar a partir do strike inicial e trava no strike final; se o ativo não chegar lá, perde-se o prêmio pago. Aqui o gráfico mostra o resultado sobre o valor do ativo — na aba E-mail Cliente a mesma operação aparece em % do prêmio, que é como a XP publica.'
   };
   document.getElementById('dvNote').textContent=notes[s];
 }
