@@ -1340,6 +1340,7 @@ function rcLoad(){
     return true;
   }catch(e){ return false; }
 }
+function rcBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function rcNum(v){
   var t=(''+(v==null?'':v)).replace(/r\$/i,'').replace(/\s/g,'');
   if(!t) return 0;
@@ -1415,12 +1416,12 @@ function recalcReceita(){
       g.rows.forEach(function(row){ sa+=rcNum(row.a[mi]); sr+=rcNum(row.r[mi]); });
       ga[mi]+=sa; gr[mi]+=sr;
       var ea=document.getElementById('tot-'+gi+'-'+mi+'-a'), er=document.getElementById('tot-'+gi+'-'+mi+'-r');
-      if(ea) ea.textContent=brl(sa); if(er) er.textContent=brl(sr);
+      if(ea) ea.textContent=rcBRL(sa); if(er) er.textContent=rcBRL(sr);
     });
   });
   RC_MONTHS.forEach(function(m,mi){
     var ea=document.getElementById('gtot-'+mi+'-a'), er=document.getElementById('gtot-'+mi+'-r');
-    if(ea) ea.textContent=brl(ga[mi]); if(er) er.textContent=brl(gr[mi]);
+    if(ea) ea.textContent=rcBRL(ga[mi]); if(er) er.textContent=rcBRL(gr[mi]);
   });
 }
 function rcAddLinha(gi){ if(!RC_GROUPS[gi]) return; RC_GROUPS[gi].rows.push(rcLinha()); rcSave(); buildReceita(); }
