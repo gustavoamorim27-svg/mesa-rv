@@ -2208,6 +2208,15 @@ if(typeof window.togglePk==='function'){
 function boot(){
   injectRVButton();
   injectCmpStatus();
+  /* liga os botões de atualizar. (Eles existiam no HTML com id, mas o clique
+     nunca tinha sido conectado — só o botão da Renda Variável, criado por JS,
+     funcionava.) */
+  var bM=document.getElementById('btnMkt');
+  if(bM) bM.onclick=function(){ loadMercados(); };
+  var bN=document.getElementById('btnNews');
+  if(bN) bN.onclick=function(){ loadNoticias(); };
+  var bMC=document.getElementById('btnMorning');
+  if(bMC) bMC.onclick=function(){ loadMorning(); };
   loadMercados();          /* aba inicial mostra Notícias, mas Mercados é barato */
   loadNoticias();
   loadMorning();
