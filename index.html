@@ -264,6 +264,10 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cart-bar .cb-top .pct{font-family:'Sora';font-weight:700;color:var(--yellow);}
 .cart-bar .cb-track{height:9px;background:#1a1a1a;border-radius:5px;overflow:hidden;}
 .cart-bar .cb-fill{height:100%;border-radius:5px;}
+.rc-btn{background:var(--panel-2);border:1px solid var(--line-2);color:#d4d4d4;border-radius:7px;padding:3px 9px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.rc-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+.rc-btn.rc-del:hover{border-color:var(--red);color:var(--red)}
+.rc-mth{background:transparent;border:none;color:#fff}
 .imp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
 .imp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11.5px;color:#d4d4d4;white-space:nowrap}
 .imp-chip i{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -383,7 +387,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   <div class="tab" data-t="rv">Renda Variável</div>
   <div class="tab" data-t="mesa">Mesa / Book</div>
   <div class="tab" data-t="email">E-mail Cliente</div>
-  <div class="tab" data-t="receita">Controle de Receita</div>
+  <div class="tab" data-t="receita">Líderes e Times</div>
   <div class="tab" data-t="ferramentas">Ferramentas</div>
 </div>
 
@@ -708,9 +712,10 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
   <!-- CONTROLE DE RECEITA -->
   <div class="panel" data-p="receita">
     <div class="page-head">
-      <div><div class="kick">GESTÃO INTERNA</div><h2>Controle de Receita</h2><p>Planilha de alocação e receita por stakeholder e por mês. Células editáveis; totais somam automaticamente.</p></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" onclick="addReceitaRow()">+ Linha</button>
+      <div><div class="kick">GESTÃO INTERNA</div><h2>Líderes e Times</h2><p>Alocação e receita por líder, time e mês. Tudo editável — nome do líder, meses, linhas e valores. Salva sozinho neste navegador.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="rcAddGrupo()">+ Líder</button>
+        <button class="btn" onclick="rcReset()" title="Limpar tudo e recomeçar">Limpar</button>
         <button class="btn primary" onclick="window.print()">Exportar</button>
       </div>
     </div>
@@ -718,7 +723,7 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
     <div class="xls-wrap">
       <table class="xls" id="xlsTable"></table>
     </div>
-    <p class="note-inline">Planilha de controle interno. Valores em R$; edite as células de Alocação e Receita — os totais por mês e por stakeholder recalculam sozinhos. Dados ficam no arquivo apenas nesta sessão (para salvar, exporte).</p>
+    <p class="note-inline">Controle interno. Valores em R$ — digite só os números (ex.: 12.500,00). Use “+ Linha” dentro de cada líder para incluir integrantes, e “+ Líder” para abrir um novo time. Os dados ficam salvos neste navegador.</p>
   </div>
 
   <!-- FERRAMENTAS -->
@@ -1300,56 +1305,145 @@ document.getElementById('lkInput').addEventListener('keydown',e=>{if(e.key==='En
 renderLinks();
 
 // ===== Controle de Receita (Excel-like) =====
-const RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-let RC_GROUPS=[
- {nome:"VITOR MACIEL PONTES - GUNNERS", rows:4},
- {nome:"CARLOS HENRIQUE VITALIANO DA SILVA - STRIKERS", rows:4},
- {nome:"YAN KERTESZ LEONI TARELHO - DEALERS", rows:4},
-];
-function brl(v){return 'R$ '+(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function buildReceita(){
-  const t=document.getElementById('xlsTable');
-  // header
-  let head='<tr><th class="rlabel" style="background:#141414"></th>';
-  RC_MONTHS.forEach(m=>head+=`<th class="mth" colspan="2">${m}</th>`);
-  head+='</tr><tr><th class="sub-h"></th>';
-  RC_MONTHS.forEach(()=>head+='<th class="sub-h">Alocação</th><th class="sub-h">Receita</th>');
-  head+='</tr>';
-  let body='';
-  RC_GROUPS.forEach((g,gi)=>{
-    body+=`<tr><td class="grp" colspan="${1+RC_MONTHS.length*2}">${g.nome}</td></tr>`;
-    for(let r=0;r<g.rows;r++){
-      body+=`<tr><td class="rlabel"><input class="cell" style="text-align:left;color:#bdbdbd" placeholder="item ${r+1}"></td>`;
-      RC_MONTHS.forEach((m,mi)=>{
-        body+=`<td class="aloc"><input class="cell" data-g="${gi}" data-m="${mi}" data-t="a" oninput="recalcReceita()" placeholder="-"></td>`;
-        body+=`<td class="rec"><input class="cell" data-g="${gi}" data-m="${mi}" data-t="r" oninput="recalcReceita()" placeholder="-"></td>`;
+/* ===== Líderes e Times =====================================================
+   Reescrito para funcionar como planilha: tudo editável (título, meses, nome do
+   líder, integrantes e valores), com adicionar/remover linha em QUALQUER líder.
+   Antes os valores viviam só no HTML — ao adicionar uma linha a tabela era
+   reconstruída e apagava tudo que havia sido digitado. Agora o estado fica num
+   objeto e é salvo no navegador. */
+var RC_LS='mesaLideresTimes';
+var RC_TITLE='Digital First São Paulo';
+var RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+function rcLinha(nome){ return {label:nome||'', a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
+function rcGrupo(nome,n){ var rows=[]; for(var i=0;i<(n||4);i++) rows.push(rcLinha()); return {nome:nome||'Novo líder', rows:rows}; }
+var RC_GROUPS=[ rcGrupo("VITOR MACIEL PONTES - GUNNERS",4),
+                rcGrupo("CARLOS HENRIQUE VITALIANO DA SILVA - STRIKERS",4),
+                rcGrupo("YAN KERTESZ LEONI TARELHO - DEALERS",4) ];
+
+function rcSave(){ try{ localStorage.setItem(RC_LS,JSON.stringify({t:RC_TITLE,m:RC_MONTHS,g:RC_GROUPS})); }catch(e){} }
+function rcLoad(){
+  try{
+    var d=JSON.parse(localStorage.getItem(RC_LS)||'null'); if(!d||!d.g) return false;
+    if(d.t) RC_TITLE=d.t;
+    if(Array.isArray(d.m)&&d.m.length) RC_MONTHS=d.m;
+    RC_GROUPS=d.g.map(function(g){
+      if(typeof g.rows==='number') g.rows=Array.apply(null,{length:g.rows}).map(function(){return rcLinha();});  /* formato antigo */
+      g.rows=(g.rows||[]).map(function(r){
+        r=r||{}; r.label=r.label||'';
+        r.a=(r.a||[]).slice(0,RC_MONTHS.length); r.r=(r.r||[]).slice(0,RC_MONTHS.length);
+        while(r.a.length<RC_MONTHS.length) r.a.push('');
+        while(r.r.length<RC_MONTHS.length) r.r.push('');
+        return r;
       });
-      body+='</tr>';
-    }
-    // total row per group
-    body+=`<tr class="tot"><td class="rlabel">Total</td>`;
-    RC_MONTHS.forEach((m,mi)=>{ body+=`<td id="tot-${gi}-${mi}-a">R$ 0,00</td><td id="tot-${gi}-${mi}-r">R$ 0,00</td>`; });
-    body+='</tr>';
+      return {nome:g.nome||'', rows:g.rows};
+    });
+    return true;
+  }catch(e){ return false; }
+}
+function rcNum(v){
+  var t=(''+(v==null?'':v)).replace(/r\$/i,'').replace(/\s/g,'');
+  if(!t) return 0;
+  if(t.indexOf(',')>=0) t=t.replace(/\./g,'').replace(',','.');
+  var n=parseFloat(t); return isFinite(n)?n:0;
+}
+function esc2rc(t){ return (''+(t==null?'':t)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function buildReceita(){
+  var t=document.getElementById('xlsTable'); if(!t) return;
+  var nm=RC_MONTHS.length, cols=1+nm*2+1;
+  var head='<tr><th class="rlabel" style="background:#141414"></th>';
+  RC_MONTHS.forEach(function(m,mi){
+    head+='<th class="mth" colspan="2"><input class="cell rc-mth" data-mn="'+mi+'" value="'+esc2rc(m)+'" style="text-align:center;font-weight:700"></th>';
   });
+  head+='<th class="mth" style="width:34px"></th></tr><tr><th class="sub-h"></th>';
+  RC_MONTHS.forEach(function(){ head+='<th class="sub-h">Alocação</th><th class="sub-h">Receita</th>'; });
+  head+='<th class="sub-h"></th></tr>';
+
+  var body='';
+  RC_GROUPS.forEach(function(g,gi){
+    body+='<tr><td class="grp" colspan="'+cols+'">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<input class="cell rc-lider" data-gn="'+gi+'" value="'+esc2rc(g.nome)+'" placeholder="Nome do líder / time" style="text-align:left;font-weight:800;flex:1">'
+      +'<button class="rc-btn" onclick="rcAddLinha('+gi+')" title="Adicionar integrante">+ linha</button>'
+      +'<button class="rc-btn rc-del" onclick="rcDelGrupo('+gi+')" title="Remover este líder">remover líder</button>'
+      +'</div></td></tr>';
+    g.rows.forEach(function(row,ri){
+      body+='<tr><td class="rlabel"><input class="cell" data-rl="'+gi+'-'+ri+'" value="'+esc2rc(row.label)+'" placeholder="integrante '+(ri+1)+'" style="text-align:left;color:#bdbdbd"></td>';
+      RC_MONTHS.forEach(function(m,mi){
+        body+='<td class="aloc"><input class="cell" data-c="'+gi+'-'+ri+'-'+mi+'-a" value="'+esc2rc(row.a[mi]||'')+'" placeholder="-"></td>';
+        body+='<td class="rec"><input class="cell" data-c="'+gi+'-'+ri+'-'+mi+'-r" value="'+esc2rc(row.r[mi]||'')+'" placeholder="-"></td>';
+      });
+      body+='<td style="text-align:center"><button class="rc-btn rc-del" onclick="rcDelLinha('+gi+','+ri+')" title="Remover linha">×</button></td></tr>';
+    });
+    body+='<tr class="tot"><td class="rlabel">Total ' + '</td>';
+    RC_MONTHS.forEach(function(m,mi){ body+='<td id="tot-'+gi+'-'+mi+'-a">R$ 0,00</td><td id="tot-'+gi+'-'+mi+'-r">R$ 0,00</td>'; });
+    body+='<td></td></tr>';
+  });
+  /* total geral */
+  body+='<tr class="tot" style="border-top:2px solid var(--yellow)"><td class="rlabel" style="color:var(--yellow);font-weight:800">TOTAL GERAL</td>';
+  RC_MONTHS.forEach(function(m,mi){ body+='<td id="gtot-'+mi+'-a" style="color:var(--yellow)">R$ 0,00</td><td id="gtot-'+mi+'-r" style="color:var(--yellow)">R$ 0,00</td>'; });
+  body+='<td></td></tr>';
+
   t.innerHTML=head+body;
+  var ti=document.getElementById('xlsTitle'); if(ti&&ti.value!==RC_TITLE) ti.value=RC_TITLE;
   recalcReceita();
 }
+
+/* um único listener: atualiza o modelo sem reconstruir a tabela (não perde o foco) */
+(function(){
+  document.addEventListener('input',function(ev){
+    var el=ev.target; if(!el||!el.getAttribute) return;
+    var v=el.value;
+    if(el.id==='xlsTitle'){ RC_TITLE=v; rcSave(); return; }
+    var mn=el.getAttribute('data-mn');
+    if(mn!=null){ RC_MONTHS[+mn]=v; rcSave(); return; }
+    var gn=el.getAttribute('data-gn');
+    if(gn!=null){ if(RC_GROUPS[+gn]) RC_GROUPS[+gn].nome=v; rcSave(); return; }
+    var rl=el.getAttribute('data-rl');
+    if(rl){ var p=rl.split('-'); if(RC_GROUPS[+p[0]]&&RC_GROUPS[+p[0]].rows[+p[1]]) RC_GROUPS[+p[0]].rows[+p[1]].label=v; rcSave(); return; }
+    var c=el.getAttribute('data-c');
+    if(c){ var q=c.split('-'); var g=RC_GROUPS[+q[0]]; if(g&&g.rows[+q[1]]){ g.rows[+q[1]][q[3]][+q[2]]=v; } recalcReceita(); rcSave(); return; }
+  },true);
+})();
+
 function recalcReceita(){
-  RC_GROUPS.forEach((g,gi)=>{
-    RC_MONTHS.forEach((m,mi)=>{
-      let sa=0,sr=0;
-      document.querySelectorAll(`input[data-g="${gi}"][data-m="${mi}"][data-t="a"]`).forEach(x=>sa+=parseFloat((x.value||'').replace(/\./g,'').replace(',','.'))||0);
-      document.querySelectorAll(`input[data-g="${gi}"][data-m="${mi}"][data-t="r"]`).forEach(x=>sr+=parseFloat((x.value||'').replace(/\./g,'').replace(',','.'))||0);
-      const ea=document.getElementById(`tot-${gi}-${mi}-a`), er=document.getElementById(`tot-${gi}-${mi}-r`);
-      if(ea)ea.textContent=brl(sa); if(er)er.textContent=brl(sr);
+  var ga=[],gr=[];
+  RC_MONTHS.forEach(function(){ ga.push(0); gr.push(0); });
+  RC_GROUPS.forEach(function(g,gi){
+    RC_MONTHS.forEach(function(m,mi){
+      var sa=0,sr=0;
+      g.rows.forEach(function(row){ sa+=rcNum(row.a[mi]); sr+=rcNum(row.r[mi]); });
+      ga[mi]+=sa; gr[mi]+=sr;
+      var ea=document.getElementById('tot-'+gi+'-'+mi+'-a'), er=document.getElementById('tot-'+gi+'-'+mi+'-r');
+      if(ea) ea.textContent=brl(sa); if(er) er.textContent=brl(sr);
     });
   });
+  RC_MONTHS.forEach(function(m,mi){
+    var ea=document.getElementById('gtot-'+mi+'-a'), er=document.getElementById('gtot-'+mi+'-r');
+    if(ea) ea.textContent=brl(ga[mi]); if(er) er.textContent=brl(gr[mi]);
+  });
 }
-function addReceitaRow(){
-  // add a row to the last group
-  RC_GROUPS[RC_GROUPS.length-1].rows++;
-  buildReceita();
+function rcAddLinha(gi){ if(!RC_GROUPS[gi]) return; RC_GROUPS[gi].rows.push(rcLinha()); rcSave(); buildReceita(); }
+function rcDelLinha(gi,ri){
+  var g=RC_GROUPS[gi]; if(!g) return;
+  if(g.rows.length<=1){ g.rows[0]=rcLinha(); } else { g.rows.splice(ri,1); }
+  rcSave(); buildReceita();
 }
+function rcAddGrupo(){ RC_GROUPS.push(rcGrupo('Novo líder',3)); rcSave(); buildReceita(); }
+function rcDelGrupo(gi){
+  if(RC_GROUPS.length<=1){ RC_GROUPS[0]=rcGrupo('Novo líder',3); }
+  else { RC_GROUPS.splice(gi,1); }
+  rcSave(); buildReceita();
+}
+function rcReset(){
+  try{ if(!confirm('Limpar todos os líderes, integrantes e valores?')) return; }catch(e){}
+  RC_TITLE='Digital First São Paulo';
+  RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  RC_GROUPS=[rcGrupo('Novo líder',4)];
+  rcSave(); buildReceita();
+}
+function addReceitaRow(){ rcAddLinha(RC_GROUPS.length-1); }   /* compatibilidade */
+rcLoad();
 buildReceita();
 
 // ===== Carteiras-modelo =====
