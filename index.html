@@ -1931,7 +1931,16 @@ async function loadRV(force){
 if(typeof window.genPath==='function'){
   var _genPath=window.genPath;
   window.genPath=function(a){
-    try{ if(a&&HIST[a.tk]&&HIST[a.tk].length>3) return HIST[a.tk].slice(); }catch(e){}
+    /* IMPORTANTE: precisa devolver o MESMO formato do original -> {P0, path:[...]}
+       (o openAsset faz `const {P0,path}=currentPathObj`). Devolver só o array
+       quebrava a abertura do ativo. */
+    try{
+      var h=(a&&HIST[a.tk])?HIST[a.tk]:null;
+      if(h&&h.length>3){
+        var path=h.slice().filter(function(v){ return typeof v==='number'&&isFinite(v)&&v>0; });
+        if(path.length>3) return {P0:path[0], path:path};
+      }
+    }catch(e){}
     return _genPath(a);
   };
 }
