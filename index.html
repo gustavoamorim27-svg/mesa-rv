@@ -264,6 +264,8 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cart-bar .cb-top .pct{font-family:'Sora';font-weight:700;color:var(--yellow);}
 .cart-bar .cb-track{height:9px;background:#1a1a1a;border-radius:5px;overflow:hidden;}
 .cart-bar .cb-fill{height:100%;border-radius:5px;}
+.rc-sel{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;width:100%}
+.xls td.acomp{text-align:center;font-size:11.5px;font-weight:700}
 .rc-btn{background:var(--panel-2);border:1px solid var(--line-2);color:#d4d4d4;border-radius:7px;padding:3px 9px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap}
 .rc-btn:hover{border-color:var(--yellow);color:var(--yellow)}
 .rc-btn.rc-del:hover{border-color:var(--red);color:var(--red)}
@@ -1314,7 +1316,7 @@ renderLinks();
 var RC_LS='mesaLideresTimes';
 var RC_TITLE='Digital First São Paulo';
 var RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-function rcLinha(nome){ return {label:nome||'', a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
+function rcLinha(nome){ return {label:nome||'', o1:'', em:'', a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
 function rcGrupo(nome,n){ var rows=[]; for(var i=0;i<(n||4);i++) rows.push(rcLinha()); return {nome:nome||'Novo líder', rows:rows}; }
 var RC_GROUPS=[ rcGrupo("VITOR MACIEL PONTES - GUNNERS",4),
                 rcGrupo("CARLOS HENRIQUE VITALIANO DA SILVA - STRIKERS",4),
@@ -1329,7 +1331,7 @@ function rcLoad(){
     RC_GROUPS=d.g.map(function(g){
       if(typeof g.rows==='number') g.rows=Array.apply(null,{length:g.rows}).map(function(){return rcLinha();});  /* formato antigo */
       g.rows=(g.rows||[]).map(function(r){
-        r=r||{}; r.label=r.label||'';
+        r=r||{}; r.label=r.label||''; r.o1=r.o1||''; r.em=r.em||'';
         r.a=(r.a||[]).slice(0,RC_MONTHS.length); r.r=(r.r||[]).slice(0,RC_MONTHS.length);
         while(r.a.length<RC_MONTHS.length) r.a.push('');
         while(r.r.length<RC_MONTHS.length) r.r.push('');
@@ -1339,6 +1341,14 @@ function rcLoad(){
     });
     return true;
   }catch(e){ return false; }
+}
+/* select Sim/Não do acompanhamento de cada integrante */
+function rcSelect(tipo,gi,ri,val){
+  var v=val||'';
+  function op(x,rot){ return '<option value="'+x+'"'+(v===x?' selected':'')+'>'+rot+'</option>'; }
+  var cor = v==='sim' ? 'var(--green)' : (v==='nao' ? 'var(--red)' : '#8a8a8a');
+  return '<select class="rc-sel" data-'+tipo+'="'+gi+'-'+ri+'" style="color:'+cor+'">'
+    +op('','—')+op('sim','Sim')+op('nao','Não')+'</select>';
 }
 function rcBRL(v){ return 'R$ '+(Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function rcNum(v){
@@ -1351,12 +1361,14 @@ function esc2rc(t){ return (''+(t==null?'':t)).replace(/&/g,'&amp;').replace(/</
 
 function buildReceita(){
   var t=document.getElementById('xlsTable'); if(!t) return;
-  var nm=RC_MONTHS.length, cols=1+nm*2+1;
+  var nm=RC_MONTHS.length, cols=1+2+nm*2+1;
   var head='<tr><th class="rlabel" style="background:#141414"></th>';
+  head+='<th class="mth" colspan="2">Acompanhamento</th>';
   RC_MONTHS.forEach(function(m,mi){
     head+='<th class="mth" colspan="2"><input class="cell rc-mth" data-mn="'+mi+'" value="'+esc2rc(m)+'" style="text-align:center;font-weight:700"></th>';
   });
   head+='<th class="mth" style="width:34px"></th></tr><tr><th class="sub-h"></th>';
+  head+='<th class="sub-h">1 on 1 feito?</th><th class="sub-h">Enviar e-mail</th>';
   RC_MONTHS.forEach(function(){ head+='<th class="sub-h">Alocação</th><th class="sub-h">Receita</th>'; });
   head+='<th class="sub-h"></th></tr>';
 
@@ -1370,18 +1382,22 @@ function buildReceita(){
       +'</div></td></tr>';
     g.rows.forEach(function(row,ri){
       body+='<tr><td class="rlabel"><input class="cell" data-rl="'+gi+'-'+ri+'" value="'+esc2rc(row.label)+'" placeholder="integrante '+(ri+1)+'" style="text-align:left;color:#bdbdbd"></td>';
+      body+='<td class="acomp">'+rcSelect('o1',gi,ri,row.o1)+'</td>';
+      body+='<td class="acomp">'+rcSelect('em',gi,ri,row.em)+'</td>';
       RC_MONTHS.forEach(function(m,mi){
         body+='<td class="aloc"><input class="cell" data-c="'+gi+'-'+ri+'-'+mi+'-a" value="'+esc2rc(row.a[mi]||'')+'" placeholder="-"></td>';
         body+='<td class="rec"><input class="cell" data-c="'+gi+'-'+ri+'-'+mi+'-r" value="'+esc2rc(row.r[mi]||'')+'" placeholder="-"></td>';
       });
       body+='<td style="text-align:center"><button class="rc-btn rc-del" onclick="rcDelLinha('+gi+','+ri+')" title="Remover linha">×</button></td></tr>';
     });
-    body+='<tr class="tot"><td class="rlabel">Total ' + '</td>';
+    body+='<tr class="tot"><td class="rlabel">Total</td>';
+    body+='<td class="acomp" id="cnt-'+gi+'-o1">0/0</td><td class="acomp" id="cnt-'+gi+'-em">0/0</td>';
     RC_MONTHS.forEach(function(m,mi){ body+='<td id="tot-'+gi+'-'+mi+'-a">R$ 0,00</td><td id="tot-'+gi+'-'+mi+'-r">R$ 0,00</td>'; });
     body+='<td></td></tr>';
   });
   /* total geral */
   body+='<tr class="tot" style="border-top:2px solid var(--yellow)"><td class="rlabel" style="color:var(--yellow);font-weight:800">TOTAL GERAL</td>';
+  body+='<td class="acomp" id="cnt-geral-o1" style="color:var(--yellow)">0/0</td><td class="acomp" id="cnt-geral-em" style="color:var(--yellow)">0/0</td>';
   RC_MONTHS.forEach(function(m,mi){ body+='<td id="gtot-'+mi+'-a" style="color:var(--yellow)">R$ 0,00</td><td id="gtot-'+mi+'-r" style="color:var(--yellow)">R$ 0,00</td>'; });
   body+='<td></td></tr>';
 
@@ -1392,7 +1408,7 @@ function buildReceita(){
 
 /* um único listener: atualiza o modelo sem reconstruir a tabela (não perde o foco) */
 (function(){
-  document.addEventListener('input',function(ev){
+  function rcOnEdit(ev){
     var el=ev.target; if(!el||!el.getAttribute) return;
     var v=el.value;
     if(el.id==='xlsTitle'){ RC_TITLE=v; rcSave(); return; }
@@ -1402,9 +1418,19 @@ function buildReceita(){
     if(gn!=null){ if(RC_GROUPS[+gn]) RC_GROUPS[+gn].nome=v; rcSave(); return; }
     var rl=el.getAttribute('data-rl');
     if(rl){ var p=rl.split('-'); if(RC_GROUPS[+p[0]]&&RC_GROUPS[+p[0]].rows[+p[1]]) RC_GROUPS[+p[0]].rows[+p[1]].label=v; rcSave(); return; }
+    var o1=el.getAttribute('data-o1');
+    if(o1){ var z=o1.split('-'); var gg=RC_GROUPS[+z[0]]; if(gg&&gg.rows[+z[1]]) gg.rows[+z[1]].o1=v;
+      el.style.color = v==='sim'?'var(--green)':(v==='nao'?'var(--red)':'#8a8a8a');
+      recalcReceita(); rcSave(); return; }
+    var em=el.getAttribute('data-em');
+    if(em){ var w=em.split('-'); var gh=RC_GROUPS[+w[0]]; if(gh&&gh.rows[+w[1]]) gh.rows[+w[1]].em=v;
+      el.style.color = v==='sim'?'var(--green)':(v==='nao'?'var(--red)':'#8a8a8a');
+      recalcReceita(); rcSave(); return; }
     var c=el.getAttribute('data-c');
     if(c){ var q=c.split('-'); var g=RC_GROUPS[+q[0]]; if(g&&g.rows[+q[1]]){ g.rows[+q[1]][q[3]][+q[2]]=v; } recalcReceita(); rcSave(); return; }
-  },true);
+  }
+  document.addEventListener('input',rcOnEdit,true);
+  document.addEventListener('change',rcOnEdit,true);
 })();
 
 function recalcReceita(){
@@ -1423,6 +1449,19 @@ function recalcReceita(){
     var ea=document.getElementById('gtot-'+mi+'-a'), er=document.getElementById('gtot-'+mi+'-r');
     if(ea) ea.textContent=rcBRL(ga[mi]); if(er) er.textContent=rcBRL(gr[mi]);
   });
+  /* quantos integrantes já têm 1 on 1 feito / e-mail enviado */
+  var to1=0,tem=0,tn=0;
+  RC_GROUPS.forEach(function(g,gi){
+    var n=g.rows.length, c1=0,c2=0;
+    g.rows.forEach(function(row){ if(row.o1==='sim') c1++; if(row.em==='sim') c2++; });
+    to1+=c1; tem+=c2; tn+=n;
+    var e1=document.getElementById('cnt-'+gi+'-o1'), e2=document.getElementById('cnt-'+gi+'-em');
+    if(e1){ e1.textContent=c1+'/'+n; e1.style.color=(n&&c1===n)?'var(--green)':'#a2a2a2'; }
+    if(e2){ e2.textContent=c2+'/'+n; e2.style.color=(n&&c2===n)?'var(--green)':'#a2a2a2'; }
+  });
+  var g1=document.getElementById('cnt-geral-o1'), g2=document.getElementById('cnt-geral-em');
+  if(g1) g1.textContent=to1+'/'+tn;
+  if(g2) g2.textContent=tem+'/'+tn;
 }
 function rcAddLinha(gi){ if(!RC_GROUPS[gi]) return; RC_GROUPS[gi].rows.push(rcLinha()); rcSave(); buildReceita(); }
 function rcDelLinha(gi,ri){
