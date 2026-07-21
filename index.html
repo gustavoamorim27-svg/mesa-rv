@@ -1487,11 +1487,13 @@ const SECTOR_TK={
  "Financeiro":["BPAC11","B3SA3","ITSA4"],"Saneamento":["SBSP3"],"Seguradoras":["BBSE3"],"Shoppings":["MULT3"],
  "Construção Civil":["CYRE3","MRVE3","DIRR3"],"Transportes":["CCRO3","RENT3"],"Alimentos e Bebidas":["ABEV3","JBSS3","BRFS3"],
  "Tecnologia, Mídia e Telecom":["TOTS3","VIVT3","TIMS3"],"Vestuário e Joias":["LREN3","VULC3"]};
-document.getElementById('oiClasses').innerHTML=OI_CLASSES.map((c,i)=>`
+/* A aba "Onde Investir" foi removida: estes alvos não existem mais no DOM.
+   Sem a guarda, o innerHTML em null lança e derruba TODO o resto do script. */
+if(document.getElementById('oiClasses')) document.getElementById('oiClasses').innerHTML=OI_CLASSES.map((c,i)=>`
   <div class="oi-class" onclick="openOIClass(${i})"><div class="ic">${c.ic}</div><h3>${c.nome}</h3><p>${c.desc}</p>
   <div class="tags">${c.tags.map(t=>`<span class="t">${t}</span>`).join('')}</div>
   <div style="margin-top:12px;font-family:'Sora';font-size:11px;font-weight:700;color:var(--yellow)">Ver visão ›</div></div>`).join('');
-document.getElementById('oiSectors').innerHTML=OI_SECTORS.map(s=>`<span class="oi-sec" onclick="openOISector('${s.replace(/'/g,"")}')">${s}</span>`).join('');
+if(document.getElementById('oiSectors')) document.getElementById('oiSectors').innerHTML=OI_SECTORS.map(s=>`<span class="oi-sec" onclick="openOISector('${s.replace(/'/g,"")}')">${s}</span>`).join('');
 
 function fillOI(icon,title,sub,visaoH,visao,dest,risco,tickers){
   document.getElementById('oiIcon').textContent=icon;
