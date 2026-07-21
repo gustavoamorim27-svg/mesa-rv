@@ -1495,7 +1495,8 @@ function renderImported(aloc,srcName){
 
   var comRec=0;
   var linhas=aloc.slice().sort(function(a,b){ return b[1]-a[1]; }).map(function(a){
-    var info=impXP(a[0]); if(info) comRec++;
+    var info=impXP(a[0]);
+    if(info && info.recom && info.recom!=='—') comRec++;   /* conta só recomendação de fato */
     var pct=total?(a[1]/total*100):0;
     var rec=info?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
                 :'<span style="color:#777;font-size:11px">sem cobertura</span>';
@@ -1513,8 +1514,8 @@ function renderImported(aloc,srcName){
     '<table class="imp-tbl"><thead><tr><th>Ativo</th><th class="num">Posição</th><th class="num">% da carteira</th>'
     +'<th>Recom. XP</th><th class="num">Preço-alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table>';
 
-  msg.innerHTML='<span style="color:var(--green)">Importado: '+aloc.length+' ativos · '+impBRL(total)
-    +' · '+comRec+' com recomendação XP.</span>';
+  msg.innerHTML='<span style="color:var(--green)">Importado: '+aloc.length+' ativos · '+impBRL(total)+'.</span>'
+    +' <span style="color:#a2a2a2">'+comRec+' com recomendação da XP; os demais aparecem como “—” porque ainda não têm recomendação preenchida na base.</span>';
 }
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
