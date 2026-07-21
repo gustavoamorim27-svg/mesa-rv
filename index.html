@@ -387,10 +387,8 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   <div class="tab" data-t="mercados">Mercados</div>
   <div class="tab" data-t="morning">Morning Call XP</div>
   <div class="tab" data-t="comparador">Comparador</div>
-  <div class="tab" data-t="onde">Onde Investir</div>
   <div class="tab" data-t="carteiras">Carteiras</div>
   <div class="tab" data-t="rv">Renda Variável</div>
-  <div class="tab" data-t="mesa">Mesa / Book</div>
   <div class="tab" data-t="email">E-mail Cliente</div>
   <div class="tab" data-t="receita">Líderes e Times</div>
   <div class="tab" data-t="ferramentas">Ferramentas</div>
@@ -499,7 +497,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <p class="note-inline" style="margin-top:10px">Playlist oficial "Morning Call" do canal XP no YouTube. Requer internet para carregar o vídeo. A lista é servida pelo YouTube, então o episódio mais novo aparece no topo.</p>
       </div>
       <div class="card">
-        <h3>Resumo de hoje <span class="chip-tag" style="margin-left:6px">20/07</span></h3>
+        <h3>Resumo de hoje <span class="chip-tag" style="margin-left:6px" id="mcChip">20/07</span></h3>
         <div class="sub" style="margin-bottom:12px" id="mcDate">Segunda-feira, 20/07/2026 · antes do pregão</div>
         <div id="mcResumo" style="font-size:13px;color:#d4d4d4;line-height:1.65">
           <p style="margin-bottom:10px"><b style="color:var(--yellow)">Mercados:</b> Ibovespa vem de fechamento a <b>173.371 pts (-1,35%)</b> e o dólar segue perto de <b>R$ 5,09</b>. Lá fora, o tom foi de aversão a risco: S&amp;P 500 -0,96% e Nasdaq -1,41%. O grande movimento está nas commodities — <b>Brent a US$ 90,73 (+7,7%)</b> e <b>ouro a US$ 4.061 (+1,9%)</b>, ambos reagindo à escalada no Oriente Médio. DXY em 100,96.</p>
@@ -510,6 +508,27 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <p class="note-inline" style="margin-top:12px">O vídeo e a data acima são puxados automaticamente do canal (feed do YouTube) — sempre abre o Morning Call mais recente. O resumo em texto abaixo continua manual: peça "atualiza o morning call" para eu reescrevê-lo com as manchetes do dia.</p>
       </div>
     </div>
+    <div class="section-label" style="margin-top:22px"><span class="dot"></span><span>MORNING CALLS DA SEMANA</span><span class="ln"></span></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <div class="card">
+        <h3>Esta semana <span class="chip-tag" style="margin-left:6px" id="mcSemAtualN">—</span></h3>
+        <div id="mcSemAtual" class="sub" style="margin-top:10px">Carregando…</div>
+      </div>
+      <div class="card">
+        <h3>Semana passada <span class="chip-tag" style="margin-left:6px" id="mcSemAntN">—</span></h3>
+        <div id="mcSemAnt" class="sub" style="margin-top:10px">Carregando…</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:22px"><span class="dot"></span><span>RESUMO SEMANAL</span><span class="ln"></span></div>
+    <div class="card">
+      <h3>Resumo dos últimos 5 morning calls</h3>
+      <div class="sub" id="mc5Data" style="margin-top:4px">—</div>
+      <div id="mc5Resumo" style="font-size:13px;color:#d4d4d4;line-height:1.65;margin-top:12px">
+        <p style="color:#888">Ainda não há resumo publicado. Ele é gerado toda quinta-feira e aparece aqui.</p>
+      </div>
+    </div>
+
     <p class="note-inline">O resumo escrito é preenchido pelo Claude a partir da versão em texto do Morning Call (Research XP), resumido para apoio do assessor. O arquivo não roda sozinho todos os dias nem extrai o áudio do vídeo — o player mostra o vídeo, e o resumo é atualizado no chat quando você pedir. Não constitui recomendação; observar suitability.</p>
   </div>
   <div class="panel" data-p="comparador">
@@ -555,30 +574,6 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   </div>
 
   <!-- ONDE INVESTIR -->
-  <div class="panel" data-p="onde">
-    <div class="oi-hero">
-      <div class="oi-hero-tag">GUIA DE INVESTIMENTOS · 2026</div>
-      <h2 class="oi-hero-t">Onde Investir</h2>
-      <p class="oi-hero-p">Guia por classes de ativo com a visão do Research: economia, alocação, Bolsa, setores e as oportunidades do ano. Estrutura no formato do guia da XP — conteúdo resumido, a completar com os relatórios oficiais.</p>
-      <div class="oi-hero-checks"><span>✓ Projeções macro</span><span>✓ Estratégia de alocação</span><span>✓ Recomendações por classe</span></div>
-    </div>
-
-    <div class="section-label"><span class="dot"></span><span>POR CLASSE DE ATIVO</span><span class="ln"></span></div>
-    <div class="grid g-3" id="oiClasses"></div>
-
-    <div class="section-label"><span class="dot"></span><span>O QUE O GUIA TRAZ</span><span class="ln"></span></div>
-    <div class="grid g-2">
-      <div class="card"><h3>Economia e projeções XP</h3><div class="sub" style="line-height:1.6;margin-top:6px">Expectativas para dólar, juros, inflação e PIB, e os fatores que movem a economia no ano.</div></div>
-      <div class="card"><h3>Estratégias de alocação</h3><div class="sub" style="line-height:1.6;margin-top:6px">Tendências e oportunidades por classe de ativo, considerando os cenários macro.</div></div>
-      <div class="card"><h3>Visão para a Bolsa e mercados globais</h3><div class="sub" style="line-height:1.6;margin-top:6px">Preço-alvo do Ibovespa e leitura dos estrategistas para Brasil e exterior.</div></div>
-      <div class="card"><h3>Olhar setorial</h3><div class="sub" style="line-height:1.6;margin-top:6px">Destaques de cada setor da Bolsa — tecnologia, energia, varejo e mais.</div></div>
-    </div>
-
-    <div class="section-label"><span class="dot"></span><span>COBERTURA SETORIAL</span><span class="ln"></span></div>
-    <div class="oi-sectors" id="oiSectors"></div>
-
-    <p class="note-inline">Estrutura inspirada no guia "Onde Investir" e na seção de Ações da XP. Textos resumidos; os relatórios completos e oficiais ficam no Research da XP. Não constitui recomendação personalizada; observar suitability.</p>
-  </div>
   <div class="panel" data-p="carteiras">
     <div class="page-head">
       <div><div class="kick">GESTÃO</div><h2>Carteiras-modelo</h2><p>Alocação sugerida por perfil de risco no cenário de juros altos de 2026. Percentuais ilustrativos e editáveis — ponto de partida para adaptar ao cliente (observar suitability).</p></div>
@@ -642,19 +637,6 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   </div>
 
   <!-- MESA / BOOK -->
-  <div class="panel" data-p="mesa">
-    <div class="page-head">
-      <div><div class="kick">OPERAÇÕES</div><h2>Mesa / Book</h2><p>Ordens e execuções da mesa de renda variável. Tabela editável — registre as boletas do dia (dados de exemplo, ajuste conforme o fluxo real).</p></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" onclick="addOrdem()">+ Ordem</button>
-        <button class="btn primary" onclick="window.print()">Exportar</button>
-      </div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <table class="rvtable" id="bookTable"></table>
-    </div>
-    <p class="note-inline">Book de exemplo para estruturar o fluxo da mesa. Defina as colunas e o status conforme o processo de vocês; os dados ficam só nesta sessão (exporte para salvar).</p>
-  </div>
 
   <!-- E-MAIL CLIENTE -->
   <div class="panel" data-p="email">
@@ -720,6 +702,27 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
       <div id="emMsg" class="sub" style="margin-top:8px"></div>
     </div>
     <p class="note-inline">Ferramenta de apoio para montar o e-mail ao cliente. Revise os dados, o termo e a assinatura antes de enviar. Não constitui recomendação personalizada automática; observar suitability e a política de investimentos.</p>
+  </div>
+
+  <!-- ALOCAÇÕES DO INTEGRANTE -->
+  <div id="rcDetOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto">
+    <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:1040px;width:100%;padding:20px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+        <div>
+          <div class="kick">ALOCAÇÕES DO INTEGRANTE</div>
+          <h2 style="margin:2px 0 0" id="rcDetNome">—</h2>
+          <div class="sub" id="rcDetLider" style="margin-top:2px"></div>
+        </div>
+        <button class="btn" onclick="rcFecharDet()">Fechar</button>
+      </div>
+      <div class="card" style="padding:0;overflow:auto">
+        <table class="xls" id="rcDetTable"></table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn primary" onclick="rcDetAdd()">+ linha</button>
+      </div>
+      <p class="note-inline" style="margin-top:10px">O que foi alocado por este integrante. As linhas ficam salvas no navegador junto com a planilha de líderes e times.</p>
+    </div>
   </div>
 
   <!-- CONTROLE DE RECEITA -->
@@ -1542,7 +1545,9 @@ renderLinks();
 var RC_LS='mesaLideresTimes';
 var RC_TITLE='Digital First São Paulo';
 var RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-function rcLinha(nome){ return {label:nome||'', o1:'', em:'', a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
+function rcLinha(nome){ return {label:nome||'', o1:'', em:'', det:[], a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
+/* uma alocação registrada para o integrante */
+function rcDetLinha(){ return {ass:'', cod:'', estr:'', data:'', aloc:'', rec:''}; }
 function rcGrupo(nome,n){ var rows=[]; for(var i=0;i<(n||4);i++) rows.push(rcLinha()); return {nome:nome||'Novo líder', rows:rows}; }
 var RC_GROUPS=[ rcGrupo("VITOR MACIEL PONTES - GUNNERS",4),
                 rcGrupo("CARLOS HENRIQUE VITALIANO DA SILVA - STRIKERS",4),
@@ -1556,6 +1561,7 @@ function rcLoad(){
     if(Array.isArray(d.m)&&d.m.length) RC_MONTHS=d.m;
     RC_GROUPS=d.g.map(function(g){
       if(typeof g.rows==='number') g.rows=Array.apply(null,{length:g.rows}).map(function(){return rcLinha();});  /* formato antigo */
+      if(Array.isArray(g.rows)) g.rows.forEach(function(r){ if(!Array.isArray(r.det)) r.det=[]; });  /* antes do campo det */
       g.rows=(g.rows||[]).map(function(r){
         r=r||{}; r.label=r.label||''; r.o1=r.o1||''; r.em=r.em||'';
         r.a=(r.a||[]).slice(0,RC_MONTHS.length); r.r=(r.r||[]).slice(0,RC_MONTHS.length);
@@ -1607,7 +1613,13 @@ function buildReceita(){
       +'<button class="rc-btn rc-del" onclick="rcDelGrupo('+gi+')" title="Remover este líder">remover líder</button>'
       +'</div></td></tr>';
     g.rows.forEach(function(row,ri){
-      body+='<tr><td class="rlabel"><input class="cell" data-rl="'+gi+'-'+ri+'" value="'+esc2rc(row.label)+'" placeholder="integrante '+(ri+1)+'" style="text-align:left;color:#bdbdbd"></td>';
+      /* o nome continua editável; o botão ao lado abre as alocações do integrante */
+      var _nd=(row.det&&row.det.length)?row.det.length:0;
+      body+='<tr><td class="rlabel"><div style="display:flex;align-items:center;gap:4px">'
+        +'<input class="cell" data-rl="'+gi+'-'+ri+'" value="'+esc2rc(row.label)+'" placeholder="integrante '+(ri+1)+'" style="text-align:left;color:#bdbdbd;flex:1">'
+        +'<button class="rc-btn" onclick="rcAbrirDet('+gi+','+ri+')" title="Ver o que foi alocado">▤'
+        +(_nd?'<span style="color:var(--yellow);margin-left:3px">'+_nd+'</span>':'')+'</button>'
+        +'</div></td>';
       body+='<td class="acomp">'+rcSelect('o1',gi,ri,row.o1)+'</td>';
       body+='<td class="acomp">'+rcSelect('em',gi,ri,row.em)+'</td>';
       RC_MONTHS.forEach(function(m,mi){
@@ -1631,6 +1643,61 @@ function buildReceita(){
   var ti=document.getElementById('xlsTitle'); if(ti&&ti.value!==RC_TITLE) ti.value=RC_TITLE;
   recalcReceita();
 }
+
+/* ===== Alocações do integrante =====================================
+   Tabela no formato da planilha: Assessor | Código cliente | Estrutura |
+   Data | Alocação | Receita. Linhas livres, tudo salvo em RC_GROUPS.det. */
+var RC_DET={g:null,r:null};
+function rcDetTotal(det,campo){
+  var t=0; (det||[]).forEach(function(d){
+    var n=parseFloat(String(d[campo]||'').replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.'));
+    if(isFinite(n)) t+=n;
+  }); return t;
+}
+function rcAbrirDet(gi,ri){
+  var g=RC_GROUPS[gi]; if(!g) return; var row=g.rows[ri]; if(!row) return;
+  if(!Array.isArray(row.det)) row.det=[];
+  RC_DET={g:gi,r:ri};
+  document.getElementById('rcDetOverlay').style.display='flex';
+  rcDetRender();
+}
+function rcFecharDet(){ document.getElementById('rcDetOverlay').style.display='none'; RC_DET={g:null,r:null}; buildReceita(); }
+function rcDetRow(){ var g=RC_GROUPS[RC_DET.g]; return g?g.rows[RC_DET.r]:null; }
+function rcDetRender(){
+  var row=rcDetRow(); if(!row) return;
+  var g=RC_GROUPS[RC_DET.g];
+  document.getElementById('rcDetNome').textContent=row.label||('Integrante '+(RC_DET.r+1));
+  document.getElementById('rcDetLider').textContent=g.nome||'';
+  var campos=[['ass','Assessor','left'],['cod','Código cliente','center'],['estr','Estrutura','left'],
+              ['data','Data','center'],['aloc','Alocação','right'],['rec','Receita','right']];
+  var h='<thead><tr>'+campos.map(function(c){ return '<th class="'+(c[2]==='left'?'l':'')+'">'+c[1]+'</th>'; }).join('')+'<th></th></tr></thead><tbody>';
+  (row.det||[]).forEach(function(d,i){
+    h+='<tr>'+campos.map(function(c){
+      var ph = c[0]==='data'?'dd/mm/aaaa' : (c[0]==='estr'?'ex.: Fence' : (c[0]==='aloc'||c[0]==='rec'?'R$ 0,00':'—'));
+      return '<td><input class="cell" style="text-align:'+c[2]+'" data-dt="'+i+'-'+c[0]+'" value="'+esc2rc(d[c[0]]||'')+'" placeholder="'+ph+'"></td>';
+    }).join('')
+    +'<td style="text-align:center"><button class="rc-btn rc-del" onclick="rcDetDel('+i+')" title="Remover linha">×</button></td></tr>';
+  });
+  if(!(row.det||[]).length) h+='<tr><td colspan="7" style="text-align:center;color:#777;padding:18px">Nenhuma alocação registrada. Clique em “+ linha”.</td></tr>';
+  h+='<tr class="tot"><td class="rlabel" colspan="4" style="text-align:right;padding-right:10px">Total</td>'
+    +'<td style="text-align:right">'+rcBRL(rcDetTotal(row.det,'aloc'))+'</td>'
+    +'<td style="text-align:right;color:var(--yellow)">'+rcBRL(rcDetTotal(row.det,'rec'))+'</td><td></td></tr>';
+  document.getElementById('rcDetTable').innerHTML=h+'</tbody>';
+}
+function rcDetAdd(){ var row=rcDetRow(); if(!row) return; if(!Array.isArray(row.det)) row.det=[]; row.det.push(rcDetLinha()); rcSave(); rcDetRender(); }
+function rcDetDel(i){ var row=rcDetRow(); if(!row) return; row.det.splice(i,1); rcSave(); rcDetRender(); }
+/* edição das células do detalhe */
+document.addEventListener('input',function(ev){
+  var el=ev.target; if(!el||!el.getAttribute) return;
+  var k=el.getAttribute('data-dt'); if(!k) return;
+  var row=rcDetRow(); if(!row) return;
+  var p=k.split('-'); var d=row.det[+p[0]]; if(!d) return;
+  d[p[1]]=el.value; rcSave();
+  if(p[1]==='aloc'||p[1]==='rec'){
+    var tds=document.querySelectorAll('#rcDetTable tr.tot td');
+    if(tds.length>=3){ tds[1].textContent=rcBRL(rcDetTotal(row.det,'aloc')); tds[2].textContent=rcBRL(rcDetTotal(row.det,'rec')); }
+  }
+},true);
 
 /* um único listener: atualiza o modelo sem reconstruir a tabela (não perde o foco) */
 (function(){
@@ -1971,6 +2038,7 @@ let ORDENS=[
 function statusColor(s){return s==='Executada'?'rec-compra':(s==='Aberta'?'rec-neutro':(s==='Cancelada'?'rec-venda':'rec-na'));}
 function buildBook(){
   const t=document.getElementById('bookTable');
+  if(!t) return;   /* a aba Mesa / Book foi removida */
   let head='<thead><tr><th class="l">Hora</th><th class="l">Cliente</th><th class="l">Ativo</th><th>Lado</th><th>Qtd.</th><th>Preço</th><th>Status</th><th></th></tr></thead>';
   let body='<tbody>'+ORDENS.map((o,i)=>`<tr>
     <td style="text-align:left"><input class="cell" style="text-align:left" value="${o.h}" oninput="ORDENS[${i}].h=this.value"></td>
@@ -2088,19 +2156,16 @@ function emRows(arr,name,estrut){
     <td><input class="cell" style="text-align:center" value="${o.cod}" placeholder="—" oninput="${name}[${i}].cod=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:right" value="${o.preco}" oninput="${name}[${i}].preco=this.value;genEmail()"></td>
     <td class="vcalc" id="val-${name}-${i}">—</td>
-    ${estrut?`<td>${emSelectEstrut(name,i,o)}</td><td>${emCamposEstrut(name,i,o)}</td>`:''}
     <td style="width:34px"><button class="x" style="background:none;border:none;color:#6f6f6f;cursor:pointer;font-size:15px" onclick="rmRow('${name}',${i})">×</button></td>
   </tr>`).join('');
 }
 function buildEmailTables(){
   const head='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th><th></th></tr></thead>';
-  const headC='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th>'
-    +'<th>Estrutura</th><th>Parâmetros</th><th></th></tr></thead>';
   document.getElementById('vendaTable').innerHTML=head+'<tbody>'+emRows(VENDA,'VENDA')+'</tbody>';
-  document.getElementById('compraTable').innerHTML=headC+'<tbody>'+emRows(COMPRA,'COMPRA',true)+'</tbody>';
+  document.getElementById('compraTable').innerHTML=head+'<tbody>'+emRows(COMPRA,'COMPRA')+'</tbody>';
   try{ emRecalc(); }catch(e){}
 }
-function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado',estr:'fence',p:{}}); buildEmailTables(); genEmail(); }
+function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado'}); buildEmailTables(); genEmail(); }
 function rmRow(name,i){ (name==='VENDA'?VENDA:COMPRA).splice(i,1); buildEmailTables(); genEmail(); }
 function padr(s,n){ s=''+s; return s+' '.repeat(Math.max(0,n-s.length)); }
 function emTableTxt(arr){
@@ -2244,7 +2309,6 @@ function genEmailHTML(){
 
   COMPRA.filter(function(o){ return o.ativo; }).forEach(function(o){
     h+='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:19px;font-weight:700;margin:26px 0 4px">'+(o.ativo||'').toUpperCase()+'</p>';
-    h+=emTabelaCenarios(o);
     h+=emTabelaFundamento(o);
   });
 
@@ -2573,11 +2637,55 @@ async function loadNoticias(){
 
 /* ================= MORNING CALL (último vídeo) ================= */
 var MC_LOADED=false;
+/* Segunda-feira 00:00 da semana de uma data (semana começa na segunda). */
+function mcInicioSemana(d){
+  var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var dow=(x.getDay()+6)%7;            /* 0 = segunda */
+  x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x;
+}
+function mcFmtDia(d){ return d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}); }
+function mcSemanas(xml){
+  var itens=(xml.match(/<entry>[\s\S]*?<\/entry>/g)||[]).map(function(e){
+    return { titulo: ent(((e.match(/<title>([\s\S]*?)<\/title>/)||[])[1]||'').trim()),
+             pub:    ((e.match(/<published>([\s\S]*?)<\/published>/)||[])[1]||'').trim(),
+             vid:    ((e.match(/<yt:videoId>([\s\S]*?)<\/yt:videoId>/)||[])[1]||'').trim() };
+  }).filter(function(i){ return i.pub && i.vid; })
+    .map(function(i){ i.d=new Date(i.pub); return i; })
+    .filter(function(i){ return !isNaN(i.d); })
+    .sort(function(a,b){ return b.d-a.d; });
+  window.MC_ITENS=itens;
+  var ini=mcInicioSemana(new Date());
+  var iniAnt=new Date(ini); iniAnt.setDate(iniAnt.getDate()-7);
+  function pinta(alvo,cont,lista){
+    var el=document.getElementById(alvo), n=document.getElementById(cont);
+    if(!el) return;
+    if(n) n.textContent=lista.length? (lista.length+(lista.length>1?' calls':' call')) : 'nenhum';
+    if(!lista.length){ el.innerHTML='<span style="color:#777">Nenhum Morning Call publicado neste período.</span>'; return; }
+    el.innerHTML=lista.map(function(i){
+      return '<div style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line)">'
+        +'<span style="color:var(--yellow);font-weight:700;font-size:11px;min-width:74px;text-transform:capitalize">'+mcFmtDia(i.d)+'</span>'
+        +'<a href="https://www.youtube.com/watch?v='+i.vid+'" target="_blank" rel="noopener" '
+        +'style="color:#dcdcdc;text-decoration:none;font-size:12.5px;line-height:1.45;flex:1">'+i.titulo+'</a></div>';
+    }).join('');
+  }
+  pinta('mcSemAtual','mcSemAtualN', itens.filter(function(i){ return i.d>=ini; }));
+  pinta('mcSemAnt','mcSemAntN',   itens.filter(function(i){ return i.d>=iniAnt && i.d<ini; }));
+  mcPintaResumo();
+}
+/* O resumo dos últimos 5 é gravado no arquivo pela tarefa de quinta-feira. */
+var MC_RESUMO5=null;
+function mcPintaResumo(){
+  if(!MC_RESUMO5) return;
+  var d=document.getElementById('mc5Data'), r=document.getElementById('mc5Resumo');
+  if(d) d.textContent=MC_RESUMO5.data||'—';
+  if(r) r.innerHTML=MC_RESUMO5.html||'';
+}
 async function loadMorning(){
   var t=await viaProxy('https://www.youtube.com/feeds/videos.xml?playlist_id=PLMl5SicO7iPAblUrGoWYKJ1Gw7QDFkEZ8',
                        function(x){return x.indexOf('<entry')>=0;});
   if(!t) return;
   try{
+    mcSemanas(t);
     var e=(t.match(/<entry>[\s\S]*?<\/entry>/)||[])[0]||'';
     var title=ent(((e.match(/<title>([\s\S]*?)<\/title>/)||[])[1]||'').trim());
     var pub=((e.match(/<published>([\s\S]*?)<\/published>/)||[])[1]||'').trim();
