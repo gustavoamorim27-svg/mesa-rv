@@ -707,11 +707,16 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
 
     <div class="section-label"><span class="dot"></span><span>E-MAIL GERADO</span><span class="ln"></span></div>
     <div class="card">
-      <textarea id="emOut" style="width:100%;min-height:280px;font-family:'Manrope'" placeholder="Clique em 'Gerar e-mail'…"></textarea>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn primary" onclick="copyEmail()">Copiar e-mail</button>
+      <div class="sub" style="margin-bottom:8px">Pré-visualização — é exatamente assim que vai chegar no cliente:</div>
+      <div id="emPreview" style="background:#fff;color:#000;padding:22px;border-radius:8px;max-height:520px;overflow:auto"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn primary" onclick="copyEmail()">Copiar e-mail (com formatação)</button>
+        <button class="btn" onclick="copyEmailTexto()">Copiar como texto</button>
         <button class="btn" onclick="window.print()">Imprimir / PDF</button>
       </div>
+      <details style="margin-top:12px"><summary class="sub" style="cursor:pointer">Ver versão em texto puro</summary>
+        <textarea id="emOut" style="width:100%;min-height:220px;font-family:'Manrope';margin-top:8px" placeholder="Clique em 'Gerar e-mail'…"></textarea>
+      </details>
       <div id="emMsg" class="sub" style="margin-top:8px"></div>
     </div>
     <p class="note-inline">Ferramenta de apoio para montar o e-mail ao cliente. Revise os dados, o termo e a assinatura antes de enviar. Não constitui recomendação personalizada automática; observar suitability e a política de investimentos.</p>
@@ -1845,7 +1850,7 @@ function emPuxarCarteira(){
   });
   buildEmailTables(); genEmail();
 }
-function emRows(arr,name){
+function emRows(arr,name,estrut){
   return arr.map((o,i)=>`<tr>
     <td><input class="cell" style="font-family:Sora;font-weight:700" value="${o.ativo}" oninput="${name}[${i}].ativo=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:center" value="${o.op}" oninput="${name}[${i}].op=this.value;genEmail()"></td>
@@ -1853,21 +1858,130 @@ function emRows(arr,name){
     <td><input class="cell" style="text-align:center" value="${o.cod}" placeholder="—" oninput="${name}[${i}].cod=this.value;genEmail()"></td>
     <td><input class="cell" style="text-align:right" value="${o.preco}" oninput="${name}[${i}].preco=this.value;genEmail()"></td>
     <td class="vcalc" id="val-${name}-${i}">—</td>
+    ${estrut?`<td><input class="cell" style="text-align:center" value="${o.bar==null?50:o.bar}" oninput="${name}[${i}].bar=this.value;genEmail()"></td>
+    <td><input class="cell" style="text-align:center" value="${o.teto==null?33:o.teto}" oninput="${name}[${i}].teto=this.value;genEmail()"></td>
+    <td><input class="cell" style="text-align:center" value="${o.prot==null?20:o.prot}" oninput="${name}[${i}].prot=this.value;genEmail()"></td>`:''}
     <td style="width:34px"><button class="x" style="background:none;border:none;color:#6f6f6f;cursor:pointer;font-size:15px" onclick="rmRow('${name}',${i})">×</button></td>
   </tr>`).join('');
 }
 function buildEmailTables(){
   const head='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th><th></th></tr></thead>';
+  const headC='<thead><tr><th class="l">Ativo</th><th>Operação</th><th>Quantidade</th><th>Código</th><th>Preço</th><th>Valor estimado</th>'
+    +'<th title="Acima desta alta, o retorno trava no teto">Barreira %</th>'
+    +'<th title="Retorno máximo da estrutura">Teto %</th>'
+    +'<th title="Queda protegida até este nível">Proteção %</th><th></th></tr></thead>';
   document.getElementById('vendaTable').innerHTML=head+'<tbody>'+emRows(VENDA,'VENDA')+'</tbody>';
-  document.getElementById('compraTable').innerHTML=head+'<tbody>'+emRows(COMPRA,'COMPRA')+'</tbody>';
+  document.getElementById('compraTable').innerHTML=headC+'<tbody>'+emRows(COMPRA,'COMPRA',true)+'</tbody>';
+  try{ emRecalc(); }catch(e){}
 }
-function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado'}); buildEmailTables(); genEmail(); }
+function addRow(kind){ (kind==='venda'?VENDA:COMPRA).push({ativo:'',op:kind==='venda'?'V':'C',qtd:'',cod:'',preco:'A Mercado',bar:50,teto:33,prot:20}); buildEmailTables(); genEmail(); }
 function rmRow(name,i){ (name==='VENDA'?VENDA:COMPRA).splice(i,1); buildEmailTables(); genEmail(); }
 function padr(s,n){ s=''+s; return s+' '.repeat(Math.max(0,n-s.length)); }
 function emTableTxt(arr){
   let out=padr('Ativo',9)+padr('Operação',10)+padr('Quantidade',12)+padr('Código',9)+'Preço\n';
   arr.forEach(o=>{ if(!o.ativo&&!o.qtd)return; out+=padr(o.ativo,9)+padr(o.op,10)+padr(o.qtd,12)+padr(o.cod||' ',9)+(o.preco||'')+'\n'; });
   return out;
+}
+/* ===== E-mail em HTML, no modelo usado pela mesa =====================
+   Cabeçalho preto com letras amarelas na tabela de venda; para cada ativo de
+   entrada, um bloco com "Cenários de retorno no vencimento" e a análise
+   fundamentalista. Copiar leva o HTML formatado para o Outlook. */
+function emNum2(v){ var n=(typeof rcNum==='function')?rcNum(v):parseFloat(v); return isFinite(n)?n:0; }
+function emPct(v){ return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
+function emQtd(v){ var n=emNum2(v); return n?n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):''; }
+function emDot(v){ var c = v>0?'#2e9e5b':(v<0?'#d64a4a':'#d9a300'); return '<span style="color:'+c+';font-size:15px">&#9679;</span> '; }
+/* retorno da estrutura dado o movimento do ativo */
+function emEstrategia(x,bar,teto,prot){
+  if(x>=bar) return teto;      /* rompeu a barreira: trava no teto */
+  if(x>0)    return x;         /* participa 1:1 */
+  if(x>=-prot) return 0;       /* queda protegida */
+  return x+prot;               /* abaixo da proteção, perde o excedente */
+}
+function emCenarios(o){
+  var bar=emNum2(o.bar)||50, teto=emNum2(o.teto)||33, prot=emNum2(o.prot)||20;
+  var xs=[bar+10, bar, bar-0.01, teto, teto/2, 0, -10, -prot, -prot-5, -prot-10, -prot-20];
+  var vistos={}, linhas=[];
+  xs.forEach(function(x){
+    x=Math.round(x*100)/100;
+    if(vistos[x]) return; vistos[x]=1;
+    linhas.push([x, Math.round(emEstrategia(x,bar,teto,prot)*100)/100]);
+  });
+  return linhas;
+}
+function emTabelaCenarios(o){
+  var tk=(o.ativo||'').toUpperCase();
+  var h='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:16px;font-weight:700;margin:18px 0 6px">Cenários de retorno no vencimento</p>';
+  h+='<table cellspacing="0" cellpadding="7" style="border-collapse:collapse;font-family:Aptos,Calibri,Arial,sans-serif;font-size:13px;min-width:520px">';
+  h+='<tr style="background:#e9ecef"><td style="font-weight:600">Variação % de '+tk+'</td><td style="font-weight:600">Variação % da estratégia</td></tr>';
+  emCenarios(o).forEach(function(p,i){
+    var bg=(i%2)?'#f4f6f8':'#ffffff';
+    h+='<tr style="background:'+bg+'"><td>'+emDot(p[0])+emPct(p[0])+'</td><td>'+emDot(p[1])+emPct(p[1])+'</td></tr>';
+  });
+  return h+'</table>';
+}
+function emTabelaFundamento(o){
+  var tk=(o.ativo||'').toUpperCase();
+  var a=null;
+  try{
+    var alvos=[tk]; if(typeof impAlias==='function') alvos.push(impAlias(tk));
+    for(var i=0;i<ASSETS.length&&!a;i++) for(var j=0;j<alvos.length;j++) if(ASSETS[i].tk===alvos[j]){ a=ASSETS[i]; break; }
+  }catch(e){}
+  if(!a) return '';
+  var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
+  var rec=a.recom||'—';
+  var recBg = rec==='Compra'?'#d5f5e3':(rec==='Venda'?'#f9d6d5':'#eceff1');
+  var recCor= rec==='Compra'?'#1e7d45':(rec==='Venda'?'#a33':'#555');
+  var h='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:16px;font-weight:700;margin:18px 0 6px">Análise Fundamentalista - Ações '+tk+'</p>';
+  h+='<table cellspacing="0" cellpadding="7" style="border-collapse:collapse;font-family:Aptos,Calibri,Arial,sans-serif;font-size:13px">';
+  h+='<tr style="background:#e9ecef;font-weight:600"><td>Preço Atual</td><td>Preço Alvo</td><td>Potencial</td><td>Risco (0 - 100)</td><td>Recomendação</td></tr>';
+  h+='<tr>'
+    +'<td style="font-weight:700">R$ '+(a.preco!=null?a.preco.toFixed(2).replace('.',','):'—')+'</td>'
+    +'<td style="font-weight:700">'+(a.alvo!=null?('R$ '+a.alvo.toFixed(2).replace('.',',')):'—')+'</td>'
+    +'<td style="font-weight:700">'+(pot!=null?emPct(pot):'—')+'</td>'
+    +'<td><span style="background:#c0392b;color:#fff;padding:3px 9px;font-weight:700">'+(a.risco!=null?a.risco:'—')+'</span></td>'
+    +'<td><span style="background:'+recBg+';color:'+recCor+';padding:3px 12px;font-weight:700">'+rec.toUpperCase()+'</span></td>'
+    +'</tr></table>';
+  return h;
+}
+function genEmailHTML(){
+  var cli=document.getElementById('emCli').value||'cliente';
+  var intro=document.getElementById('emIntro').value;
+  var compraNote=document.getElementById('emCompraNote').value;
+  var termo=document.getElementById('emTermo').value;
+  var sign=document.getElementById('emSign').value;
+  var cod=document.getElementById('emCodCli').value;
+  var F='font-family:Aptos,Calibri,Arial,sans-serif;font-size:15px;color:#000';
+  var h='<div style="'+F+'">';
+  h+='<p>Olá '+cli+', tudo bem?</p>';
+  h+='<p>'+String(intro).replace(/\n/g,'<br>')+'</p>';
+  if(cod) h+='<p>Código do cliente: '+cod+'</p>';
+
+  /* tabela de venda — cabeçalho preto, letras amarelas, com bordas */
+  var vend=VENDA.filter(function(o){ return o.ativo; });
+  if(vend.length){
+    h+='<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;border:1px solid #000;font-family:Aptos,Calibri,Arial,sans-serif;font-size:14px;text-align:center">';
+    h+='<tr style="background:#000000;color:#FFC000;font-weight:700">'
+      +'<td>Ativo</td><td>Operação</td><td>Quantidade</td><td>Codigo</td><td>Preço</td></tr>';
+    vend.forEach(function(o){
+      h+='<tr><td>'+(o.ativo||'')+'</td><td>'+(o.op||'')+'</td><td>'+emQtd(o.qtd)+'</td><td>'+(o.cod||'')+'</td><td>'+(o.preco||'')+'</td></tr>';
+    });
+    h+='</table>';
+  }
+  h+='<p style="margin-top:16px">Os ativos que vamos entrar:</p>';
+  if(compraNote) h+='<p>'+String(compraNote).replace(/\n/g,'<br>')+'</p>';
+
+  COMPRA.filter(function(o){ return o.ativo; }).forEach(function(o){
+    h+='<p style="font-family:Aptos,Calibri,Arial,sans-serif;font-size:19px;font-weight:700;margin:26px 0 4px">'+(o.ativo||'').toUpperCase()+'</p>';
+    h+=emTabelaCenarios(o);
+    h+=emTabelaFundamento(o);
+  });
+
+  if(termo){
+    h+='<p style="font-weight:700;margin-top:26px">Termo de Ciência de Operação Estruturada</p>';
+    h+='<p>'+String(termo).replace(/\n/g,'<br>')+'</p>';
+  }
+  h+='<p>At,</p><p>'+String(sign).replace(/\n/g,'<br>')+'</p></div>';
+  return h;
 }
 function genEmail(){
   const cli=document.getElementById('emCli').value||'cliente';
@@ -1882,9 +1996,40 @@ function genEmail(){
   t+=`Os ativos que vamos entrar:\n${compraNote}\n\n${emTableTxt(COMPRA)}\n`;
   t+=`Termo de Ciência de Operação Estruturada\n${termo}\n\nAt,\n\n${sign}`;
   document.getElementById('emOut').value=t;
+  try{
+    var pv=document.getElementById('emPreview');
+    if(pv) pv.innerHTML=genEmailHTML();
+  }catch(e){}
   try{ emRecalc(); }catch(e){}
 }
-function copyEmail(){
+async function copyEmail(){
+  genEmail();
+  var msg=document.getElementById('emMsg');
+  /* copia com formatação (HTML) para colar direto no Outlook/Gmail */
+  try{
+    if(navigator.clipboard && window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([genEmailHTML()],{type:'text/html'}),
+        'text/plain': new Blob([document.getElementById('emOut').value],{type:'text/plain'})
+      })]);
+      if(msg) msg.innerHTML='<span style="color:var(--green)">E-mail copiado <b>com formatação</b> — cole no Outlook (Ctrl+V) que as tabelas vão junto.</span>';
+      return;
+    }
+  }catch(e){}
+  /* alternativa: seleciona o preview e copia */
+  try{
+    var pv=document.getElementById('emPreview');
+    if(pv){
+      var r=document.createRange(); r.selectNodeContents(pv);
+      var sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      document.execCommand('copy'); sel.removeAllRanges();
+      if(msg) msg.innerHTML='<span style="color:var(--green)">E-mail copiado com formatação.</span>';
+      return;
+    }
+  }catch(e){}
+  copyEmailTexto();
+}
+function copyEmailTexto(){
   genEmail();
   const ta=document.getElementById('emOut'); ta.select();
   try{ navigator.clipboard.writeText(ta.value); document.getElementById('emMsg').innerHTML='<span style="color:var(--green)">E-mail copiado para a área de transferência.</span>'; }
