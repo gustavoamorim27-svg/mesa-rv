@@ -592,27 +592,21 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   <!-- ONDE INVESTIR -->
   <div class="panel" data-p="carteiras">
     <div class="page-head">
-      <div><div class="kick">GESTÃO</div><h2>Carteiras-modelo</h2><p>Alocação sugerida por perfil de risco no cenário de juros altos de 2026. Percentuais ilustrativos e editáveis — ponto de partida para adaptar ao cliente (observar suitability).</p></div>
-      <div class="cart-tabs" id="cartTabs">
-        <button class="on" data-c="conservador">Conservador</button>
-        <button data-c="moderado">Moderado</button>
-        <button data-c="agressivo">Agressivo</button>
-      </div>
+      <div><div class="kick">CARTEIRA DO CLIENTE</div><h2>Carteira do cliente</h2><p>Digite as ações do cliente para ver a cobertura da XP de cada papel, agrupada por setor. Também dá para importar a Posição Consolidada.</p></div>
     </div>
-    <div class="grid" style="grid-template-columns:1.1fr 1fr;gap:16px;align-items:start">
-      <div class="card">
-        <h3 id="cartTitle">Perfil Conservador</h3>
-        <div class="sub" id="cartDesc" style="margin-bottom:16px"></div>
-        <div id="cartBars"></div>
+    <div class="card">
+      <h3>Digitar carteira</h3>
+      <div class="sub" style="margin:6px 0 12px">Informe o ticker e a quantidade — o preço vem da cobertura da XP e é editável. Se preferir, preencha direto a posição em R$.</div>
+      <div style="overflow-x:auto"><table class="imp-tbl mc-cart" id="mcCartTable"></table></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" onclick="mcCartAdd()">+ Adicionar ação</button>
+        <button class="btn primary" onclick="mcCartAnalisar()">Analisar carteira</button>
+        <button class="btn" onclick="mcCartLimpar()">Limpar</button>
       </div>
-      <div class="card">
-        <svg id="cartDonut" viewBox="0 0 220 220" style="width:100%;max-width:260px;display:block;margin:0 auto"></svg>
-        <div id="cartLegend" class="cart-legend"></div>
-      </div>
+      <div id="mcCartMsg" class="sub" style="margin-top:10px"></div>
     </div>
-    <p class="note-inline">Alocação-modelo ilustrativa considerando CDI/Selic elevados em 2026. Não é recomendação personalizada; a carteira real depende do perfil, objetivos e suitability de cada cliente.</p>
 
-    <div class="section-label"><span class="dot"></span><span>IMPORTAR CARTEIRA DO CLIENTE (EXCEL / CSV)</span><span class="ln"></span></div>
+    <div class="section-label"><span class="dot"></span><span>OU IMPORTAR (EXCEL / CSV)</span><span class="ln"></span></div>
     <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px;align-items:start">
       <div class="card">
         <h3>Enviar arquivo</h3>
@@ -622,7 +616,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <div class="sub" style="margin:14px 0 8px">ou cole os dados (CSV: rótulo,valor por linha):</div>
         <textarea id="cartPaste" placeholder="Ações,45&#10;FIIs,25&#10;Renda Fixa,30" style="width:100%;min-height:110px;background:#0f0f0f;border:1px solid var(--line-2);border-radius:9px;color:#eee;font-family:'Manrope';font-size:12.5px;padding:12px;outline:none;resize:vertical"></textarea>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn primary" onclick="importCartPaste()">Gerar gráficos</button>
+          <button class="btn primary" onclick="importCartPaste()">Analisar</button>
           <button class="btn" onclick="clearCartImport()">Limpar</button>
         </div>
         <div id="cartImportMsg" class="sub" style="margin-top:10px"></div>
@@ -630,10 +624,8 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
       <div class="card" id="cartImportCard" style="display:none">
         <h3 id="cartImpTitle">Carteira importada</h3>
         <div class="sub" id="cartImpSub" style="margin-bottom:14px"></div>
-        <svg id="cartImpDonut" viewBox="0 0 220 220" style="width:100%;max-width:230px;display:block;margin:0 auto"></svg>
-        <div id="cartImpLegend" class="cart-legend"></div>
+        <div id="cartImpLegend" class="imp-setores"></div>
         <div id="cartImpTable" style="margin-top:16px;overflow-x:auto"></div>
-        <div id="cartSugerida" style="margin-top:22px"></div>
       </div>
     </div>
     <p class="note-inline">A leitura acontece no seu navegador (o arquivo não sai do computador). Excel (.xlsx) usa uma biblioteca que carrega da internet na primeira vez; <b>CSV funciona 100% offline</b>. Se o Excel não carregar, salve como CSV.</p>
@@ -642,21 +634,8 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
   <!-- RENDA VARIÁVEL -->
   <div class="panel" data-p="rv">
     <div class="page-head">
-      <div><div class="kick">ATIVOS</div><h2>Renda Variável</h2><p>Clique em um ativo para abrir a análise no formato XP — preço-alvo, potencial, risco, recomendação e tese.</p></div>
-      <div class="searchbox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="qrv" placeholder="Buscar ativo…" oninput="renderRV()"></div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <table class="rvtable">
-        <thead><tr><th class="l">Ativo</th><th>Setor</th><th>Cotação</th><th>Alvo XP</th><th>Potencial</th><th>Risco</th><th>Recom.</th><th></th></tr></thead>
-        <tbody id="rvrows"></tbody>
-      </table>
-    </div>
-
-    <div class="section-label" style="margin-top:26px"><span class="dot"></span><span>COBERTURA MESA RV XP · TODOS OS PAPÉIS</span><span class="ln"></span></div>
-    <div class="page-head" style="margin-bottom:10px">
-      <div><p style="margin:0;color:#a2a2a2;font-size:12.5px">Consenso do StockGuide da Mesa RV da XP, organizado por setor. Recomendação da XP, consenso de mercado (Compra/Neutro/Venda dos analistas), preço, alvo, potencial e dividend yield.</p></div>
-      <div class="searchbox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-        <input id="qcov" placeholder="Filtrar ticker, empresa ou setor…" oninput="renderCov()"></div>
+      <div><div class="kick">COBERTURA MESA RV XP</div><h2>Renda Variável</h2><p>Cobertura completa da Mesa RV da XP (StockGuide), organizada por setor: recomendação, consenso de mercado (Compra/Neutro/Venda dos analistas), preço, alvo, potencial e dividend yield.</p></div>
+      <div class="searchbox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="qcov" placeholder="Filtrar ticker, empresa ou setor…" oninput="renderCov()"></div>
     </div>
     <div class="cov-toolbar" id="covToolbar"></div>
     <div class="card" style="padding:0;overflow:hidden">
@@ -1323,7 +1302,8 @@ function cVal(a,v){ return cSym(a)+' '+Number(v).toFixed(2).replace('.',','); }
 let CUR_MOEDA='R$';
 function recClass(r){return r==="Compra"?"rec-compra":(r==="Neutro"?"rec-neutro":(r==="Venda"?"rec-venda":"rec-na"));}
 function renderRV(){
-  const q=(document.getElementById('qrv').value||'').trim().toUpperCase();
+  var _rr=document.getElementById('rvrows'); if(!_rr) return;   /* lista antiga removida: só a cobertura fica na aba */
+  const q=(document.getElementById('qrv')?document.getElementById('qrv').value:'').trim().toUpperCase();
   let list=ASSETS.filter(a=>!q||a.tk.includes(q)||a.nome.toUpperCase().includes(q));
   const potOf=a=>(a.alvo!=null)?((a.alvo/a.preco-1)*100):null;
   list.sort((a,b)=>{const pa=potOf(a),pb=potOf(b); if(pa==null&&pb==null)return 0; if(pa==null)return 1; if(pb==null)return -1; return rvSort.dir*(pa-pb);});
@@ -1401,12 +1381,8 @@ function covSetFiltro(btn){
 }
 /* clicar num papel da cobertura: se tiver detalhe rico (ASSETS) abre; senão filtra a lista de cima */
 function covAbrir(tk){
-  var temDetalhe=ASSETS.some(function(a){ return a.tk===tk; });
-  if(temDetalhe){ openAsset(tk); }
-  else {
-    var q=document.getElementById('qrv'); if(q){ q.value=tk; renderRV(); }
-    document.querySelector('.panel[data-p="rv"] .rvtable').scrollIntoView({behavior:'smooth',block:'start'});
-  }
+  if(ASSETS.some(function(a){ return a.tk===tk; })) openAsset(tk);
+  /* papéis sem detalhe rico (fora de ASSETS) apenas exibem a linha de cobertura */
 }
 let currentAsset=null, currentPathObj=null;
 const STRUCT_IMG={};
@@ -2089,9 +2065,66 @@ function renderCarteira(key){
   drawDonut('cartDonut',c.aloc,key.charAt(0).toUpperCase()+key.slice(1),'alocação-modelo');
   document.getElementById('cartLegend').innerHTML=legendHTML(c.aloc,true);
 }
-document.getElementById('cartTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  document.querySelectorAll('#cartTabs button').forEach(x=>x.classList.toggle('on',x===b)); renderCarteira(b.dataset.c);});
-renderCarteira('conservador');
+/* ===== Quadrante: digitar a carteira do cliente =====================
+   Ticker + quantidade; o preço é puxado da cobertura da XP (editável) e a
+   posição = qtd × preço. Também aceita a posição em R$ direto (campo preço
+   vazio + valor digitado no lugar da quantidade não conta; use qtd×preço). */
+var MC_CART=[{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''}];
+function mcNum(v){ var n=parseFloat(String(v==null?'':v).replace(/\./g, function(m,i,str){ return str.indexOf(',')>=0?'':'.'; }).replace(',','.')); return isFinite(n)?n:NaN; }
+function mcCartPreco(tk){
+  tk=String(tk||'').toUpperCase().trim();
+  var cv=(typeof xpCov==='function')?xpCov(tk):null; if(cv&&cv[5]!=null) return cv[5];
+  for(var i=0;i<ASSETS.length;i++) if(ASSETS[i].tk===tk && ASSETS[i].preco) return ASSETS[i].preco;
+  return null;
+}
+function mcCartValor(r){
+  var q=mcNum(r.qtd), p=mcNum(r.preco);
+  if(isFinite(q)&&isFinite(p)&&q>0&&p>0) return q*p;
+  return 0;
+}
+function mcCartPosHtml(r){ var v=mcCartValor(r); return v>0?impBRL(v):'<span style="color:#777">—</span>'; }
+function mcCartTotal(){ return MC_CART.reduce(function(s,r){ return s+(mcCartValor(r)||0); },0); }
+function mcCartRender(){
+  var t=document.getElementById('mcCartTable'); if(!t) return;
+  var h='<thead><tr><th class="l">Ticker</th><th class="num">Quantidade</th><th class="num">Preço (R$)</th><th class="num">Posição (R$)</th><th></th></tr></thead><tbody>';
+  MC_CART.forEach(function(r,i){
+    h+='<tr>'
+      +'<td><input class="cell" style="text-transform:uppercase;font-weight:700" value="'+(r.tk||'')+'" placeholder="ex.: VALE3" oninput="mcCartEdit('+i+',\'tk\',this.value)"></td>'
+      +'<td><input class="cell" style="text-align:right" value="'+(r.qtd||'')+'" placeholder="0" oninput="mcCartEdit('+i+',\'qtd\',this.value)"></td>'
+      +'<td><input class="cell" style="text-align:right" id="mc-preco-'+i+'" value="'+(r.preco||'')+'" placeholder="auto" oninput="mcCartEdit('+i+',\'preco\',this.value)"></td>'
+      +'<td class="num" id="mc-pos-'+i+'" style="font-weight:700">'+mcCartPosHtml(r)+'</td>'
+      +'<td style="text-align:center"><button class="rc-btn rc-del" onclick="mcCartDel('+i+')" title="Remover">×</button></td></tr>';
+  });
+  h+='<tr class="tot"><td class="l">Total</td><td></td><td></td><td class="num" id="mc-total" style="color:var(--yellow)">'+impBRL(mcCartTotal())+'</td><td></td></tr>';
+  t.innerHTML=h+'</tbody>';
+}
+/* atualização pontual: não reconstrói os inputs (não perde o foco ao digitar) */
+function mcCartEdit(i,campo,val){
+  var r=MC_CART[i]; if(!r) return;
+  r[campo]=val;
+  if(campo==='tk'){
+    var tk=String(val).toUpperCase().trim();
+    if((!r.preco||r.preco==='') && tk.length>=5){ var p=mcCartPreco(tk); if(p!=null){ r.preco=p; var pe=document.getElementById('mc-preco-'+i); if(pe) pe.value=p; } }
+  }
+  var pc=document.getElementById('mc-pos-'+i); if(pc) pc.innerHTML=mcCartPosHtml(r);
+  var tc=document.getElementById('mc-total'); if(tc) tc.textContent=impBRL(mcCartTotal());
+}
+function mcCartAdd(){ MC_CART.push({tk:'',qtd:'',preco:''}); mcCartRender(); }
+function mcCartDel(i){ MC_CART.splice(i,1); if(!MC_CART.length) MC_CART.push({tk:'',qtd:'',preco:''}); mcCartRender(); }
+function mcCartLimpar(){ MC_CART=[{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''},{tk:'',qtd:'',preco:''}]; mcCartRender(); var c=document.getElementById('cartImportCard'); if(c) c.style.display='none'; var m=document.getElementById('mcCartMsg'); if(m) m.textContent=''; }
+function mcCartAnalisar(){
+  var aloc=[], msg=document.getElementById('mcCartMsg');
+  MC_CART.forEach(function(r){
+    var tk=String(r.tk||'').toUpperCase().trim(); var v=mcCartValor(r);
+    if(tk && v>0) aloc.push([tk,v]);
+  });
+  if(!aloc.length){ if(msg) msg.innerHTML='<span style="color:var(--red)">Preencha ao menos um ticker com quantidade e preço.</span>'; return; }
+  var ag=impAgrupa(aloc);
+  if(msg) msg.innerHTML='<span style="color:var(--green)">'+ag.length+' ação(ões) · '+impBRL(mcCartTotal())+'.</span>';
+  renderImported(ag,'Carteira digitada');
+  var card=document.getElementById('cartImportCard'); if(card) card.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+mcCartRender();
 
 // ---- Importar carteira (Excel/CSV) ----
 /* ---- Importação de carteira ----------------------------------------------
@@ -2278,7 +2311,6 @@ function renderImported(aloc,srcName){
   document.getElementById('cartImportCard').style.display='block';
   document.getElementById('cartImpTitle').textContent='Carteira importada';
   document.getElementById('cartImpSub').textContent=srcName+' · '+aloc.length+' ativos · '+impBRL(total);
-  drawDonut('cartImpDonut',aloc,'Cliente',impBRL(total));
   /* agrupa os ativos por setor; dentro de cada setor, do maior para o menor */
   var grupos={};
   aloc.forEach(function(a,i){
@@ -2342,8 +2374,7 @@ function renderImported(aloc,srcName){
   document.getElementById('cartImpTable').innerHTML=
     '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo / Setor</th><th class="num">Posição</th><th class="num">%</th>'
     +'<th>Consenso</th><th>Recom. XP</th><th class="num">Ret. 1M</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
-  /* ===== Carteira sugerida: onde a XP indica sair/revisar, mostra a favorita do setor ===== */
-  try{ renderSugerida(aloc,setores,grupos,corSetor,total); }catch(e){ var cs=document.getElementById('cartSugerida'); if(cs) cs.innerHTML=''; }
+
 
   var extra='';
   if(aloc.__dup) extra+=' <span style="color:#a2a2a2">'+aloc.__dup+' linha(s) repetida(s) do arquivo foram ignoradas.</span>';
