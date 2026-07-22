@@ -280,6 +280,8 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .imp-sechead i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .imp-secsub{color:#9a9a9a;font-weight:600;font-size:10.5px;letter-spacing:0}
 .imp-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.fii-dy{display:inline-block;margin-left:7px;font-size:10.5px;font-weight:700;color:#3fbf7f;background:rgba(63,191,127,.12);border:1px solid rgba(63,191,127,.3);border-radius:11px;padding:1px 7px;vertical-align:middle;font-variant-numeric:tabular-nums}
+.fii-dy:empty{display:none}
 .cov-wrap{max-height:560px;overflow:auto}
 .cov-tbl th{position:sticky;top:0;background:var(--panel);z-index:2}
 .cov-secrow td{background:#141414;font-family:'Sora';font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--yellow);padding:8px 12px!important;border-top:1px solid var(--line-2)}
@@ -1504,7 +1506,7 @@ function rvRenderDetail(d,cores){
     sec.itens.slice().sort(function(a,b){return b[1]-a[1];}).forEach(function(it){
       var info=impXP(it[0]);
       var rec=(info&&info.recom&&info.recom!=='—')?'<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>':'';
-      h+='<div class="rv-at" onclick="openAsset(\''+it[0]+'\')"><span class="tk">'+it[0]+'</span>'
+      h+='<div class="rv-at" onclick="openAsset(\''+it[0]+'\')"><span class="tk">'+it[0]+fiiTag(it[0])+'</span>'
         +'<span class="vl">'+impBRL(it[1])+' · '+(it[1]/sec.tot*100).toFixed(1).replace('.',',')+'%</span>'+rec+'</div>';
     });
     h+='</div>';
@@ -1512,6 +1514,7 @@ function rvRenderDetail(d,cores){
     h+='<div class="sub" style="color:#9a9a9a">Clique num setor (no gráfico ou na lista) para ver os ativos.</div>';
   }
   host.innerHTML=h;
+  if(RV_PIE_SETOR && d.g[RV_PIE_SETOR]){ try{ fiiCarregar(d.g[RV_PIE_SETOR].itens.map(function(it){return it[0];})); }catch(e){} }
 }
 function rvSelSetor(s){
   RV_PIE_SETOR=(RV_PIE_SETOR===s?null:s);
@@ -2486,6 +2489,35 @@ function impOrdemSetor(nome){
   var i=IMP_SETOR_ORDEM.indexOf(nome);
   return i<0 ? 900 : i;
 }
+/* ===== Último dividendo dos FIIs (yield do mês), fonte Yahoo ===========
+   Mostra o provento mais recente como % do preço, ao lado do ticker do FII.
+   FII = ativo classificado como "Fundos Imobiliários" (XXXX11 fora de cobertura
+   e fora dos ETFs — exclui units como BPAC11/KLBN11 e ETFs como BOVA11). */
+var FII_DIV={};
+function isFII(tk){ try{ return impSetorDe(tk)==='Fundos Imobiliários'; }catch(e){ return false; } }
+function fiiTag(tk){ return isFII(tk)?(' <span class="fii-dy" data-fiidy="'+tk+'" title="Último provento">···</span>'):''; }
+function fiiApplyDom(tk,info){
+  var els=document.querySelectorAll('[data-fiidy="'+tk+'"]'); if(!els.length) return;
+  els.forEach(function(el){
+    if(info&&info.pct!=null){
+      el.textContent=info.pct.toFixed(2).replace('.',',')+'%';
+      el.classList.add('on');
+      var dt=info.date?(' · '+new Date(info.date*1000).toLocaleDateString('pt-BR')):'';
+      el.title='Último provento: R$ '+info.div.toFixed(2).replace('.',',')+dt+' (yield do mês)';
+    } else { el.textContent=''; el.classList.remove('on'); }
+  });
+}
+function fiiCarregar(tickers){
+  (tickers||[]).filter(isFII).forEach(function(tk){
+    var c=FII_DIV[tk];
+    if(c && (Date.now()-c.t)<3600000){ fiiApplyDom(tk,c); return; }
+    if(!window.MesaLive||!MesaLive.fiiDiv){ fiiApplyDom(tk,null); return; }
+    MesaLive.fiiDiv(tk+'.SA').then(function(d){
+      if(d && d.pct!=null){ d.t=Date.now(); FII_DIV[tk]=d; fiiApplyDom(tk,d); }
+      else fiiApplyDom(tk,null);
+    }).catch(function(){ fiiApplyDom(tk,null); });
+  });
+}
 function renderImported(aloc,srcName){
   var msg=document.getElementById('cartImportMsg');
   if(!aloc.length){ msg.innerHTML='<span style="color:var(--red)">Não encontrei ativos. Aceito a “Posição Consolidada” da XP (.xlsx) ou duas colunas: ativo e valor.</span>'; return; }
@@ -2539,7 +2571,7 @@ function renderImported(aloc,srcName){
     var rec=(info&&info.recom&&info.recom!=='—')?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
                 :'<span style="color:#777;font-size:11px">sem cobertura</span>';
     var cns=(info&&info.cns)?('<span class="cov-cns">'+info.cns+'</span>'):'<span style="color:#777">—</span>';
-    return '<tr><td style="font-weight:700"><span class="imp-dot" style="background:'+cor+'"></span>'+a[0]+'</td>'
+    return '<tr><td style="font-weight:700"><span class="imp-dot" style="background:'+cor+'"></span>'+a[0]+fiiTag(a[0])+'</td>'
       +'<td class="num">'+impBRL(a[1])+'</td>'
       +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1).replace('.',',')+'%</td>'
       +'<td>'+cns+'</td>'
@@ -2557,6 +2589,7 @@ function renderImported(aloc,srcName){
   document.getElementById('cartImpTable').innerHTML=
     '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo / Setor</th><th class="num">Posição</th><th class="num">%</th>'
     +'<th>Consenso</th><th>Recom. XP</th><th class="num">Ret. 1M</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+  try{ fiiCarregar(aloc.map(function(a){return a[0];})); }catch(e){}
 
 
   var extra='';
@@ -3064,6 +3097,23 @@ async function pool(items,n,fn){
 function ent(s){ var d=document.createElement('textarea'); d.innerHTML=s; return d.value; }
 
 /* ---------- fontes ---------- */
+/* Último provento (dividendo) de um FII via Yahoo events=div.
+   Devolve {div: valor R$, date: unix, pct: dividendo/preço*100 (yield do mês)}. */
+async function fiiDiv(sym){
+  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)
+       +'?interval=1d&range=6mo&events=div';
+  var t=await viaProxy(u,function(x){return x.indexOf('"chart"')>=0;});
+  if(!t) return null;
+  try{
+    var j=JSON.parse(t).chart.result[0];
+    var price=(j.meta.regularMarketPrice!=null)?j.meta.regularMarketPrice:null;
+    var divs=(j.events&&j.events.dividends)?Object.keys(j.events.dividends).map(function(k){return j.events.dividends[k];}):[];
+    if(!divs.length||price==null||price<=0) return null;
+    divs.sort(function(a,b){ return a.date-b.date; });
+    var last=divs[divs.length-1];
+    return {div:last.amount, date:last.date, pct:Math.round(last.amount/price*10000)/100};
+  }catch(e){ return null; }
+}
 async function yChart(sym,range,interval){
   var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)
        +'?interval='+(interval||'1d')+'&range='+(range||'5d');
@@ -3610,7 +3660,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else boot();
 
 /* expõe para o console / depuração */
-window.MesaLive={ensureCmp:ensureCmp,CMPHIST:CMPHIST,loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,bcb:bcb,rss:rss,HIST:HIST};
+window.MesaLive={ensureCmp:ensureCmp,CMPHIST:CMPHIST,loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,fiiDiv:fiiDiv,bcb:bcb,rss:rss,HIST:HIST};
 })();
 </script>
 
