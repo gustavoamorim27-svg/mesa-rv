@@ -288,6 +288,23 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .cov-fbtn{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:4px 12px;font-size:11px;color:#c8c8c8;cursor:pointer;font-family:inherit}
 .cov-fbtn.on{background:var(--yellow);color:#111;border-color:var(--yellow);font-weight:700}
 .cov-cns{font-size:10.5px;color:#9a9a9a;white-space:nowrap}
+.rv-pie-grid{display:grid;grid-template-columns:250px 1fr;gap:22px;align-items:start}
+@media(max-width:720px){.rv-pie-grid{grid-template-columns:1fr}}
+#rvPie path,#rvPie circle{transition:opacity .15s}
+.rv-secs{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
+.rv-sec{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12.5px;color:#dcdcdc}
+.rv-sec:hover{background:var(--panel-2)}
+.rv-sec.on{background:var(--panel-2);box-shadow:inset 2px 0 0 var(--yellow)}
+.rv-sec i{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.rv-sec .nm{flex:1}
+.rv-sec .pc{color:#9a9a9a;font-variant-numeric:tabular-nums}
+.rv-sec.on .pc{color:var(--yellow)}
+.rv-ativos{border-top:1px solid var(--line);padding-top:12px}
+.rv-ah{font-family:'Sora';font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--yellow);margin-bottom:8px}
+.rv-at{display:flex;align-items:center;gap:10px;padding:8px 8px;border-bottom:1px solid var(--line);cursor:pointer}
+.rv-at:hover{background:var(--panel-2)}
+.rv-at .tk{font-weight:700;min-width:74px}
+.rv-at .vl{flex:1;color:#bdbdbd;font-size:12px;font-variant-numeric:tabular-nums}
 .imp-secrow td{background:var(--panel-2);font-family:'Sora';font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#cfcfcf;padding:6px 8px!important}
 .imp-secrow td.num{color:#efefef}
 .imp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11.5px;color:#d4d4d4;white-space:nowrap}
@@ -652,6 +669,23 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
       <div><div class="kick">COBERTURA MESA RV XP</div><h2>Renda Variável</h2><p>Cobertura completa da Mesa RV da XP (StockGuide), organizada por setor: recomendação, consenso de mercado (Compra/Neutro/Venda dos analistas), preço, alvo, potencial e dividend yield.</p></div>
       <div class="searchbox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="qcov" placeholder="Filtrar ticker, empresa ou setor…" oninput="renderCov()"></div>
     </div>
+
+    <div class="section-label"><span class="dot"></span><span>CARTEIRA DO CLIENTE · POR SETOR</span><span class="ln"></span></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="sub" style="margin:0">Distribuição por setor da carteira montada na aba <b>Carteiras</b>. Clique num setor para ver os ativos.</div>
+        <button class="btn primary" onclick="rvPuxarCarteira()">Puxar carteira do cliente</button>
+      </div>
+      <div id="rvCartWrap" style="display:none;margin-top:18px">
+        <div class="rv-pie-grid">
+          <div><svg id="rvPie" viewBox="0 0 220 220" style="width:100%;max-width:250px;display:block;margin:0 auto"></svg></div>
+          <div id="rvPieDetail"></div>
+        </div>
+      </div>
+      <div id="rvCartMsg" class="sub" style="margin-top:10px"></div>
+    </div>
+
+    <div class="section-label"><span class="dot"></span><span>COBERTURA · TODOS OS PAPÉIS</span><span class="ln"></span></div>
     <div class="cov-toolbar" id="covToolbar"></div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="cov-wrap"><table class="rvtable cov-tbl" id="covTable"></table></div>
@@ -1355,9 +1389,17 @@ function covBRL(v){ return (v==null||isNaN(v))?'<span style="color:#777">—</sp
 function renderCov(){
   var q=(document.getElementById('qcov').value||'').trim().toUpperCase();
   var grupos=xpCovPorSetor();
+  /* ETFs (Brasil e exterior) voltam para a aba: vêm do ASSETS, como grupos ao final */
+  var covSetores=XPCOV_SETORES.slice();
+  ASSETS.filter(function(a){ return /^ETF/.test(a.setor||''); }).forEach(function(a){
+    var row=[a.tk, a.nome, a.setor, '—', '', (a.preco!=null?a.preco:null), (a.alvo!=null?a.alvo:null), null, null, null, null];
+    if(!grupos[a.setor]) grupos[a.setor]=[];
+    grupos[a.setor].push(row);
+    if(covSetores.indexOf(a.setor)<0) covSetores.push(a.setor);
+  });
   var head='<thead><tr><th class="l">Ativo</th><th>Rec. XP</th><th>Consenso</th><th class="num">Preço</th><th class="num">Alvo</th><th class="num">Potencial</th><th class="num">DY</th><th class="num">P/L 25</th><th class="num">1M</th></tr></thead>';
   var body='', totMostra=0;
-  XPCOV_SETORES.forEach(function(sec){
+  covSetores.forEach(function(sec){
     var linhas=(grupos[sec]||[]).filter(function(r){
       if(COV_FILTRO==='compra' && r[3]!=='Compra') return false;
       if(COV_FILTRO==='cobertas' && (r[3]==='Sem cobertura'||r[3]==='—')) return false;
@@ -1385,7 +1427,8 @@ function renderCov(){
   var tb=document.getElementById('covToolbar');
   if(tb && !tb.dataset.built){
     tb.dataset.built='1';
-    tb.innerHTML=[['todas','Todos ('+XPCOV.length+')'],['compra','Só Compra'],['cobertas','Com cobertura']]
+    var _nEtf=ASSETS.filter(function(a){return /^ETF/.test(a.setor||'');}).length;
+    tb.innerHTML=[['todas','Todos ('+(XPCOV.length+_nEtf)+')'],['compra','Só Compra'],['cobertas','Com cobertura']]
       .map(function(o){ return '<button class="cov-fbtn'+(o[0]==='todas'?' on':'')+'" data-cf="'+o[0]+'" onclick="covSetFiltro(this)">'+o[1]+'</button>'; }).join('');
   }
 }
@@ -1396,6 +1439,84 @@ function covSetFiltro(btn){
 }
 /* clicar num papel da cobertura: se tiver detalhe rico (ASSETS) abre; senão filtra a lista de cima */
 function covAbrir(tk){ openAsset(tk); }
+/* ===== Carteira do cliente na RV: pizza interativa por setor ===== */
+var RV_PIE_SETOR=null;
+var RV_PIE_CORES=['#FFC700','#5aa0ff','#3fbf7f','#a06bff','#ff8c42','#ff6b5e','#e0b64a','#5ad0ff','#7fd4a8','#c0a0ff','#ffd24a','#4ecb8f','#ff9f7f','#9a8cff'];
+function rvPuxarCarteira(){
+  var ci=window.CART_IMPORT, aloc=(ci&&ci.aloc)?ci.aloc:null;
+  var msg=document.getElementById('rvCartMsg'), wrap=document.getElementById('rvCartWrap');
+  if(!aloc||!aloc.length){
+    if(wrap) wrap.style.display='none';
+    if(msg) msg.innerHTML='<span style="color:var(--yellow)">Nenhuma carteira montada ainda. Vá em <b>Carteiras</b>, digite ou importe a carteira do cliente e clique em <b>Analisar</b>.</span>';
+    return;
+  }
+  if(msg) msg.textContent='';
+  if(wrap) wrap.style.display='block';
+  RV_PIE_SETOR=null;
+  rvDrawPie(aloc);
+}
+function rvSectorData(aloc){
+  var g={}, total=0;
+  aloc.forEach(function(a){ var sec=impSetorDe(a[0]); if(!g[sec]) g[sec]={tot:0,itens:[]}; g[sec].tot+=a[1]; g[sec].itens.push([a[0],a[1]]); total+=a[1]; });
+  var setores=Object.keys(g).sort(function(x,y){ return g[y].tot-g[x].tot; });
+  return {g:g,total:total,setores:setores};
+}
+function rvCorSetor(d){ var c={}; d.setores.forEach(function(s,i){ c[s]=RV_PIE_CORES[i%RV_PIE_CORES.length]; }); return c; }
+function rvDrawPie(aloc){
+  var d=rvSectorData(aloc), cores=rvCorSetor(d);
+  var cx=110,cy=110,r=90,ri=54, sv='';
+  if(d.setores.length===1){
+    var s0=d.setores[0];
+    sv+='<circle cx="'+cx+'" cy="'+cy+'" r="'+((r+ri)/2)+'" fill="none" stroke="'+cores[s0]+'" stroke-width="'+(r-ri)+'" style="cursor:pointer" onclick="rvSelSetor(\''+s0.replace(/\'/g,"")+'\')"><title>'+s0+'</title></circle>';
+  } else {
+    var ang=-Math.PI/2;
+    d.setores.forEach(function(s){
+      var frac=d.g[s].tot/d.total, a2=ang+frac*2*Math.PI;
+      var x1=cx+r*Math.cos(ang), y1=cy+r*Math.sin(ang), x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+      var xi1=cx+ri*Math.cos(a2), yi1=cy+ri*Math.sin(a2), xi2=cx+ri*Math.cos(ang), yi2=cy+ri*Math.sin(ang);
+      var large=frac>0.5?1:0, sel=(RV_PIE_SETOR===s), op=sel?1:(RV_PIE_SETOR?0.35:0.92);
+      sv+='<path d="M'+x1.toFixed(2)+' '+y1.toFixed(2)+' A'+r+' '+r+' 0 '+large+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2)
+         +' L'+xi1.toFixed(2)+' '+yi1.toFixed(2)+' A'+ri+' '+ri+' 0 '+large+' 0 '+xi2.toFixed(2)+' '+yi2.toFixed(2)+' Z" '
+         +'fill="'+cores[s]+'" opacity="'+op+'" stroke="#0d0d0d" stroke-width="1.5" style="cursor:pointer" '
+         +'onclick="rvSelSetor(\''+s.replace(/\'/g,"")+'\')"><title>'+s+' · '+(frac*100).toFixed(1)+'%</title></path>';
+      ang=a2;
+    });
+  }
+  var totTxt=d.total>=1000?(Math.round(d.total/1000).toLocaleString('pt-BR')+'k'):Math.round(d.total).toString();
+  sv+='<text x="110" y="107" text-anchor="middle" fill="#fff" font-size="15" font-weight="800" font-family="Sora">'+totTxt+'</text>';
+  sv+='<text x="110" y="123" text-anchor="middle" fill="#9a9a9a" font-size="8.5" font-family="Sora">R$ TOTAL</text>';
+  document.getElementById('rvPie').innerHTML=sv;
+  rvRenderDetail(d,cores);
+}
+function rvRenderDetail(d,cores){
+  var host=document.getElementById('rvPieDetail'); if(!host) return;
+  var h='<div class="rv-secs">';
+  d.setores.forEach(function(s){
+    var pct=d.g[s].tot/d.total*100, sel=(RV_PIE_SETOR===s);
+    h+='<div class="rv-sec'+(sel?' on':'')+'" onclick="rvSelSetor(\''+s.replace(/\'/g,"")+'\')">'
+      +'<i style="background:'+cores[s]+'"></i><span class="nm">'+s+'</span>'
+      +'<span class="pc">'+impBRL(d.g[s].tot)+' · '+pct.toFixed(1).replace('.',',')+'%</span></div>';
+  });
+  h+='</div>';
+  if(RV_PIE_SETOR && d.g[RV_PIE_SETOR]){
+    var sec=d.g[RV_PIE_SETOR];
+    h+='<div class="rv-ativos"><div class="rv-ah">'+RV_PIE_SETOR+' · '+impBRL(sec.tot)+'</div>';
+    sec.itens.slice().sort(function(a,b){return b[1]-a[1];}).forEach(function(it){
+      var info=impXP(it[0]);
+      var rec=(info&&info.recom&&info.recom!=='—')?'<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>':'';
+      h+='<div class="rv-at" onclick="openAsset(\''+it[0]+'\')"><span class="tk">'+it[0]+'</span>'
+        +'<span class="vl">'+impBRL(it[1])+' · '+(it[1]/sec.tot*100).toFixed(1).replace('.',',')+'%</span>'+rec+'</div>';
+    });
+    h+='</div>';
+  } else {
+    h+='<div class="sub" style="color:#9a9a9a">Clique num setor (no gráfico ou na lista) para ver os ativos.</div>';
+  }
+  host.innerHTML=h;
+}
+function rvSelSetor(s){
+  RV_PIE_SETOR=(RV_PIE_SETOR===s?null:s);
+  var ci=window.CART_IMPORT; if(ci&&ci.aloc) rvDrawPie(ci.aloc);
+}
 let currentAsset=null, currentPathObj=null;
 const STRUCT_IMG={};
 function renderStructImg(){
