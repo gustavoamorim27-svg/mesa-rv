@@ -299,6 +299,18 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .imp-tbl td{padding:8px;border-bottom:1px solid var(--line);color:#e6e6e6}
 .imp-tbl td.num,.imp-tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
 .imp-tbl tbody tr:last-child td{border-bottom:none}
+.mc-cart{table-layout:fixed}
+.mc-cart th:nth-child(1),.mc-cart td:nth-child(1){width:30%}
+.mc-cart th:nth-child(2),.mc-cart td:nth-child(2){width:20%}
+.mc-cart th:nth-child(3),.mc-cart td:nth-child(3){width:21%}
+.mc-cart th:nth-child(4),.mc-cart td:nth-child(4){width:21%}
+.mc-cart th:nth-child(5),.mc-cart td:nth-child(5){width:8%}
+.mc-cart input.cell{width:100%;box-sizing:border-box;background:#0f0f0f;border:1px solid var(--line-2);border-radius:7px;color:#eee;font-family:'Manrope';font-size:12.5px;padding:8px 10px;outline:none}
+.mc-cart input.cell:focus{border-color:var(--yellow)}
+.mc-cart td,.mc-cart th{vertical-align:middle}
+.mc-live{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#7fd4a8}
+.mc-live i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:mcpulse 1.8s infinite}
+@keyframes mcpulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 6px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 .cart-legend{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
 .cart-legend .cl{display:flex;align-items:center;gap:9px;font-size:12px;}
 .cart-legend .cl i{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
@@ -595,8 +607,11 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
       <div><div class="kick">CARTEIRA DO CLIENTE</div><h2>Carteira do cliente</h2><p>Digite as ações do cliente para ver a cobertura da XP de cada papel, agrupada por setor. Também dá para importar a Posição Consolidada.</p></div>
     </div>
     <div class="card">
-      <h3>Digitar carteira</h3>
-      <div class="sub" style="margin:6px 0 12px">Informe o ticker e a quantidade — o preço vem da cobertura da XP e é editável. Se preferir, preencha direto a posição em R$.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <h3 style="margin:0">Digitar carteira</h3>
+        <span class="mc-live"><i></i>Cotação ao vivo · atualiza sozinho <span id="mcLiveStamp" style="color:#9a9a9a"></span></span>
+      </div>
+      <div class="sub" style="margin:6px 0 12px">Informe o ticker e a quantidade — o preço vem da <b>última cotação da internet</b> e vai se atualizando sozinho (editável, se quiser fixar um valor). Se preferir, preencha direto a posição em R$.</div>
       <div style="overflow-x:auto"><table class="imp-tbl mc-cart" id="mcCartTable"></table></div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn" onclick="mcCartAdd()">+ Adicionar ação</button>
@@ -2086,6 +2101,39 @@ function mcCartPreco(tk){
   for(var i=0;i<ASSETS.length;i++) if(ASSETS[i].tk===tk && ASSETS[i].preco) return ASSETS[i].preco;
   return null;
 }
+/* Cotação ao vivo (última da internet), com cache de 60s. Usa a mesma camada
+   MesaLive das abas Mercados/Notícias (Yahoo via proxies). O StockGuide é só o
+   valor inicial enquanto a cotação real não chega. */
+var MC_PRICE={};
+async function mcFetchPreco(tk){
+  tk=String(tk||'').toUpperCase().trim(); if(tk.length<5) return null;
+  var c=MC_PRICE[tk]; if(c && (Date.now()-c.t)<60000) return c.p;
+  try{
+    if(!window.MesaLive||!MesaLive.yChart) return null;
+    var sym=(typeof SYMFIX!=='undefined'&&SYMFIX[tk])?SYMFIX[tk]:(tk+'.SA');
+    var d=await MesaLive.yChart(sym,'5d','1d');
+    if(d && d.price){ var p=Math.round(d.price*100)/100; MC_PRICE[tk]={p:p,t:Date.now()}; return p; }
+  }catch(e){}
+  return null;
+}
+/* aplica um preço ao vivo numa linha, se o usuário não digitou preço à mão */
+function mcAplicaPreco(i,tk,lp){
+  var r=MC_CART[i]; if(!r||lp==null) return;
+  if(String(r.tk||'').toUpperCase().trim()!==tk || r.precoManual) return;
+  r.preco=lp;
+  var pe=document.getElementById('mc-preco-'+i); if(pe) pe.value=lp;
+  var pc=document.getElementById('mc-pos-'+i); if(pc) pc.innerHTML=mcCartPosHtml(r);
+  var tc=document.getElementById('mc-total'); if(tc) tc.textContent=impBRL(mcCartTotal());
+}
+function mcRefreshPrecos(){
+  MC_CART.forEach(function(r,i){
+    var tk=String(r.tk||'').toUpperCase().trim();
+    if(tk.length>=5 && !r.precoManual) mcFetchPreco(tk).then(function(lp){ mcAplicaPreco(i,tk,lp); });
+  });
+  var st=document.getElementById('mcLiveStamp'); if(st) st.textContent=brTsSafe();
+}
+function brTsSafe(){ try{ return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+if(!window.__mcLiveTimer) window.__mcLiveTimer=setInterval(mcRefreshPrecos, 60000);
 function mcCartValor(r){
   var q=mcNum(r.qtd), p=mcNum(r.preco);
   if(isFinite(q)&&isFinite(p)&&q>0&&p>0) return q*p;
@@ -2111,9 +2159,14 @@ function mcCartRender(){
 function mcCartEdit(i,campo,val){
   var r=MC_CART[i]; if(!r) return;
   r[campo]=val;
+  if(campo==='preco'){ r.precoManual=(String(val).trim()!==''); }
   if(campo==='tk'){
     var tk=String(val).toUpperCase().trim();
-    if((!r.preco||r.preco==='') && tk.length>=5){ var p=mcCartPreco(tk); if(p!=null){ r.preco=p; var pe=document.getElementById('mc-preco-'+i); if(pe) pe.value=p; } }
+    r.precoManual=false;                              /* trocou o ticker: volta a cotação automática */
+    if(tk.length>=5){
+      var p=mcCartPreco(tk); if(p!=null){ r.preco=p; var pe=document.getElementById('mc-preco-'+i); if(pe) pe.value=p; }
+      mcFetchPreco(tk).then(function(lp){ mcAplicaPreco(i,tk,lp); });   /* sobrepõe com a cotação ao vivo */
+    }
   }
   var pc=document.getElementById('mc-pos-'+i); if(pc) pc.innerHTML=mcCartPosHtml(r);
   var tc=document.getElementById('mc-total'); if(tc) tc.textContent=impBRL(mcCartTotal());
@@ -3427,6 +3480,7 @@ function boot(){
       if(k==='noticias'&&!NEWS_LOADED) loadNoticias();
       if(k==='morning'&&!MC_LOADED) loadMorning();
       if(k==='rv'){ try{ renderCov(); }catch(e){} }
+      if(k==='carteiras'){ try{ mcRefreshPrecos(); }catch(e){} }
       if(k==='comparador') ensureCmp();
     },60);
   },true);
