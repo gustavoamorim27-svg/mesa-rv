@@ -317,6 +317,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .uu-avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#2a2a2a,#161616);border:2px solid var(--line-2);display:flex;align-items:center;justify-content:center;font-family:'Sora';font-weight:800;font-size:24px;color:var(--yellow);margin:0 auto;background-size:cover;background-position:center;overflow:hidden}
 .uu-avatar.lg{width:76px;height:76px;font-size:26px;cursor:pointer}
 .uu-card .uu-nome{font-family:'Sora';font-weight:700;font-size:14px;margin-top:12px;color:#eee}
+.uu-card .uu-time{font-size:10px;color:#FFC700;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 .uu-card .uu-prev{font-size:11.5px;color:#9a9a9a;margin-top:6px;line-height:1.4;min-height:32px}
 .uu-card .uu-meta{margin-top:10px;font-size:10.5px;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-weight:700}
 .uu-meta.sim{background:rgba(63,191,127,.14);color:#3fbf7f;border:1px solid rgba(63,191,127,.3)}
@@ -2048,7 +2049,9 @@ renderLinks();
 var RC_LS='mesaLideresTimes';
 var RC_TITLE='Digital First São Paulo';
 var RC_MONTHS=["Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-function rcLinha(nome){ return {label:nome||'', o1:'', em:'', det:[], a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
+var _rcSeq=0;
+function rcRowId(){ return 'r'+Date.now().toString(36)+'_'+(_rcSeq++); }
+function rcLinha(nome){ return {id:rcRowId(), label:nome||'', o1:'', em:'', det:[], a:RC_MONTHS.map(function(){return '';}), r:RC_MONTHS.map(function(){return '';})}; }
 /* uma alocação registrada para o integrante */
 function rcDetLinha(){ return {ass:'', cod:'', estr:'', data:'', aloc:'', rec:''}; }
 function rcGrupo(nome,n){ var rows=[]; for(var i=0;i<(n||4);i++) rows.push(rcLinha()); return {nome:nome||'Novo líder', rows:rows}; }
@@ -2064,7 +2067,7 @@ function rcLoad(){
     if(Array.isArray(d.m)&&d.m.length) RC_MONTHS=d.m;
     RC_GROUPS=d.g.map(function(g){
       if(typeof g.rows==='number') g.rows=Array.apply(null,{length:g.rows}).map(function(){return rcLinha();});  /* formato antigo */
-      if(Array.isArray(g.rows)) g.rows.forEach(function(r){ if(!Array.isArray(r.det)) r.det=[]; });  /* antes do campo det */
+      if(Array.isArray(g.rows)) g.rows.forEach(function(r){ if(!Array.isArray(r.det)) r.det=[]; if(!r.id) r.id=rcRowId(); });  /* det + id estável */
       g.rows=(g.rows||[]).map(function(r){
         r=r||{}; r.label=r.label||''; r.o1=r.o1||''; r.em=r.em||'';
         r.a=(r.a||[]).slice(0,RC_MONTHS.length); r.r=(r.r||[]).slice(0,RC_MONTHS.length);
@@ -3774,7 +3777,37 @@ function uuAvatarStyle(a){ return a.foto?('background-image:url('+a.foto+')'):''
 function uuUltimo(a){ return (a.sessoes&&a.sessoes.length)?a.sessoes[0]:null; }  /* mais recente no índice 0 */
 function uuMetaClass(v){ return v==='Sim'?'sim':(v==='Não'?'nao':(v==='Parcial'?'par':'vazio')); }
 function uuMetaLabel(v){ return v?('Meta anterior: '+(v==='Parcial'?'Parcial':v)):'Sem 1:1 ainda'; }
+/* Puxa os integrantes de Líderes e Times para a lista de assessores e mantém
+   sincronizado (por id estável da linha, sobrevive a renome). Cria os que faltam,
+   atualiza nome/time, e remove os sincronizados que sumiram — preservando os que
+   já têm 1:1 registrado. Assessores adicionados à mão (sem rcId) não são tocados. */
+function uuSyncLideres(){
+  try{
+    if(typeof RC_GROUPS==='undefined'||!Array.isArray(RC_GROUPS)) return;
+    var ativos={};
+    RC_GROUPS.forEach(function(gr){ (gr.rows||[]).forEach(function(row){
+      var nome=(row.label||'').trim(); if(!nome||!row.id) return;
+      ativos[row.id]={nome:nome, time:(gr.nome||'').trim()};
+    }); });
+    Object.keys(ativos).forEach(function(rcId){
+      var info=ativos[rcId], a=null;
+      for(var i=0;i<UU.length;i++){ if(UU[i].rcId===rcId){ a=UU[i]; break; } }
+      if(!a){ /* casa por nome com um assessor manual já existente, pra não duplicar */
+        for(var j=0;j<UU.length;j++){ if(!UU[j].rcId && (UU[j].nome||'').trim().toLowerCase()===info.nome.toLowerCase()){ a=UU[j]; a.rcId=rcId; break; } }
+      }
+      if(a){ a.nome=info.nome; a.time=info.time; a.deLideres=true; }
+      else UU.push({id:uuId(), rcId:rcId, nome:info.nome, time:info.time, foto:null, sessoes:[], deLideres:true});
+    });
+    /* remove os que vieram de Líderes e sumiram de lá — só se não tiverem 1:1 */
+    UU=UU.filter(function(a){
+      if(a.deLideres && a.rcId && !ativos[a.rcId]) return (a.sessoes&&a.sessoes.length>0);
+      return true;
+    });
+    uuSave();
+  }catch(e){}
+}
 function uuRender(){
+  uuSyncLideres();
   var g=document.getElementById('uuGrid'); if(!g) return;
   var h='';
   UU.forEach(function(a){
@@ -3784,6 +3817,7 @@ function uuRender(){
     h+='<div class="uu-card" onclick="uuAbrir(\''+a.id+'\')">'
       +'<div class="uu-avatar" style="'+uuAvatarStyle(a)+'">'+(a.foto?'':uuIniciais(a.nome))+'</div>'
       +'<div class="uu-nome">'+(a.nome||'Assessor')+'</div>'
+      +(a.time?'<div class="uu-time">'+a.time+'</div>':'')
       +'<div class="uu-prev">'+prev+'</div>'
       +'<div class="uu-meta '+uuMetaClass(mv)+'">'+uuMetaLabel(mv)+'</div>'
       +'</div>';
@@ -3802,7 +3836,7 @@ function uuAbrir(id){
   document.getElementById('uuMNome').value=a.nome||'';
   var fa=document.getElementById('uuMFoto'); fa.style.cssText=uuAvatarStyle(a); fa.textContent=a.foto?'':uuIniciais(a.nome);
   var u=uuUltimo(a);
-  document.getElementById('uuMResumo').innerHTML=u?('Último 1:1: '+(u.data||'—')+' · '+(u.aloc||'sem alocação')):'Nenhum 1:1 registrado ainda.';
+  document.getElementById('uuMResumo').innerHTML=(a.time?'<span style="color:#FFC700">'+a.time+'</span> · ':'')+(u?('Último 1:1: '+(u.data||'—')+' · '+(u.aloc||'sem alocação')):'Nenhum 1:1 registrado ainda.');
   // form em branco, data = hoje
   document.getElementById('uuFData').value=new Date().toISOString().slice(0,10);
   document.getElementById('uuFMeta').value='';
