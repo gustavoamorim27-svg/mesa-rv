@@ -311,6 +311,11 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .rv-vartot{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#dcdcdc}
 .rv-vartot b{font-size:14px}
 /* ===== 1:1 Assessores ===== */
+.uu-list{display:flex;flex-direction:column;gap:24px;margin-top:6px}
+.uu-team-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.uu-team-nome{font-family:'Sora';font-weight:800;font-size:12.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--yellow)}
+.uu-team-n{font-size:10.5px;color:#8a8a8a;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:1px 9px}
+.uu-team-head::after{content:'';flex:1;height:1px;background:var(--line)}
 .uu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-top:6px}
 .uu-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:border-color .15s,transform .1s}
 .uu-card:hover{border-color:var(--yellow);transform:translateY(-2px)}
@@ -848,7 +853,7 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
         <button class="btn primary" onclick="uuAddAssessor()">+ Assessor</button>
       </div>
     </div>
-    <div id="uuGrid" class="uu-grid"></div>
+    <div id="uuGrid" class="uu-list"></div>
     <p class="note-inline">Os dados (fotos, 1:1s, metas e anotações) ficam salvos neste navegador. Clique na bolha do assessor para abrir o histórico e registrar um novo 1:1.</p>
   </div>
 
@@ -877,9 +882,16 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
             <option value="Parcial">Parcialmente</option>
           </select>
         </div>
-        <div class="uu-field"><label>Receita desejada nesta semana (R$)</label><input id="uuFReceita" class="cell2" placeholder="ex.: 15.000,00"></div>
-        <div class="uu-field"><label>Alocação registrada (vira a prévia da bolha)</label><input id="uuFAloc" class="cell2" placeholder="ex.: R$ 500 mil em RV / 300 mil RF"></div>
-        <div class="uu-field" style="grid-column:1/-1"><label>Anotações</label><textarea id="uuFNota" class="cell2" style="min-height:80px" placeholder="Pontos discutidos, combinados, próximos passos…"></textarea></div>
+        <div class="uu-field"><label>Receita desejada nesta semana</label><input id="uuFReceita" class="cell2" style="text-align:right" placeholder="R$ 0,00" oninput="uuMoeda(this)"></div>
+        <div class="uu-field"><label>Alocação registrada (vira a prévia da bolha)</label><input id="uuFAloc" class="cell2" style="text-align:right" placeholder="R$ 0,00" oninput="uuMoeda(this)"></div>
+        <div class="uu-field" style="grid-column:1/-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <label style="margin:0">Anotações</label>
+            <button class="btn" style="padding:4px 10px;font-size:11px" onclick="uuCopiarEmail()">Copiar p/ e-mail</button>
+          </div>
+          <textarea id="uuFNota" class="cell2" style="min-height:80px;margin-top:6px" placeholder="Pontos discutidos, combinados, próximos passos…"></textarea>
+          <span id="uuCopiaMsg" class="sub" style="color:#3fbf7f;font-size:11px"></span>
+        </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn primary" onclick="uuRegistrar()">Registrar 1:1</button>
@@ -3806,25 +3818,60 @@ function uuSyncLideres(){
     uuSave();
   }catch(e){}
 }
+/* formata um input como R$ enquanto digita (centavos pelos 2 últimos dígitos) */
+function uuFmtMoeda(v){ var d=String(v==null?'':v).replace(/\D/g,''); if(!d) return ''; var n=parseInt(d,10)/100; return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function uuMoeda(el){ el.value=uuFmtMoeda(el.value); }
+function uuCardHtml(a){
+  var u=uuUltimo(a);
+  var prev=u&&u.aloc?u.aloc:'<span style="color:#6f6f6f">Sem alocação registrada</span>';
+  var mv=u?u.meta:'';
+  return '<div class="uu-card" onclick="uuAbrir(\''+a.id+'\')">'
+    +'<div class="uu-avatar" style="'+uuAvatarStyle(a)+'">'+(a.foto?'':uuIniciais(a.nome))+'</div>'
+    +'<div class="uu-nome">'+(a.nome||'Assessor')+'</div>'
+    +'<div class="uu-prev">'+prev+'</div>'
+    +'<div class="uu-meta '+uuMetaClass(mv)+'">'+uuMetaLabel(mv)+'</div>'
+    +'</div>';
+}
 function uuRender(){
   uuSyncLideres();
   var g=document.getElementById('uuGrid'); if(!g) return;
-  var h='';
-  UU.forEach(function(a){
-    var u=uuUltimo(a);
-    var prev=u&&u.aloc?u.aloc:'<span style="color:#6f6f6f">Sem alocação registrada</span>';
-    var mv=u?u.meta:'';
-    h+='<div class="uu-card" onclick="uuAbrir(\''+a.id+'\')">'
-      +'<div class="uu-avatar" style="'+uuAvatarStyle(a)+'">'+(a.foto?'':uuIniciais(a.nome))+'</div>'
-      +'<div class="uu-nome">'+(a.nome||'Assessor')+'</div>'
-      +(a.time?'<div class="uu-time">'+a.time+'</div>':'')
-      +'<div class="uu-prev">'+prev+'</div>'
-      +'<div class="uu-meta '+uuMetaClass(mv)+'">'+uuMetaLabel(mv)+'</div>'
-      +'</div>';
+  /* agrupa por time; ordem segue os líderes de RC_GROUPS, depois extras, "Sem time" por último */
+  var ordem=[]; try{ if(Array.isArray(RC_GROUPS)) RC_GROUPS.forEach(function(gr){ var t=(gr.nome||'').trim(); if(t&&ordem.indexOf(t)<0) ordem.push(t); }); }catch(e){}
+  var grupos={};
+  UU.forEach(function(a){ var t=(a.time||'').trim()||'Sem time'; (grupos[t]=grupos[t]||[]).push(a); });
+  var times=Object.keys(grupos).sort(function(x,y){
+    if(x==='Sem time') return 1; if(y==='Sem time') return -1;
+    var ix=ordem.indexOf(x), iy=ordem.indexOf(y);
+    if(ix<0&&iy<0) return x.localeCompare(y);
+    if(ix<0) return 1; if(iy<0) return -1; return ix-iy;
   });
-  h+='<div class="uu-card uu-add" onclick="uuAddAssessor()"><div class="plus">+</div><div style="margin-top:8px;font-size:12px">Adicionar assessor</div></div>';
+  var h='';
+  if(!UU.length){ h='<div class="sub" style="color:#8a8a8a;padding:8px 0">Nenhum assessor ainda. Adicione integrantes na aba <b>Líderes e Times</b> (aparecem aqui automaticamente) ou clique em <b>+ Assessor</b>.</div>'; }
+  times.forEach(function(t){
+    h+='<div class="uu-team"><div class="uu-team-head"><span class="uu-team-nome">'+(t==='Sem time'?'Sem time / avulsos':t)+'</span><span class="uu-team-n">'+grupos[t].length+'</span></div>'
+      +'<div class="uu-grid">'+grupos[t].map(uuCardHtml).join('')+'</div></div>';
+  });
   g.innerHTML=h;
 }
+/* copia o 1:1 que está no formulário em texto pronto para e-mail */
+function uuMsgCopia(t){ var el=document.getElementById('uuCopiaMsg'); if(!el) return; el.textContent=t; setTimeout(function(){ if(el.textContent===t) el.textContent=''; },2500); }
+function uuCopiarEmail(){
+  var a=uuGet(UU_ATUAL); if(!a) return;
+  var data=document.getElementById('uuFData').value||'';
+  var meta=document.getElementById('uuFMeta').value||'—';
+  var rec=document.getElementById('uuFReceita').value||'—';
+  var aloc=document.getElementById('uuFAloc').value||'—';
+  var nota=document.getElementById('uuFNota').value||'';
+  var txt='1:1 — '+(a.nome||'Assessor')+(a.time?(' ('+a.time+')'):'')+'\n'
+    +'Data: '+(data||'—')+'\n'
+    +'Meta do último 1:1 atingida? '+meta+'\n'
+    +'Receita desejada na semana: '+rec+'\n'
+    +'Alocação registrada: '+aloc+'\n\n'
+    +'Anotações:\n'+(nota||'(sem anotações)');
+  try{ navigator.clipboard.writeText(txt).then(function(){ uuMsgCopia('Copiado para e-mail.'); },function(){ uuCopiaFallback(txt); }); }
+  catch(e){ uuCopiaFallback(txt); }
+}
+function uuCopiaFallback(txt){ try{ var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); uuMsgCopia('Copiado.'); }catch(e){ uuMsgCopia('Não consegui copiar.'); } }
 function uuAddAssessor(){
   var a={id:uuId(), nome:'', foto:null, sessoes:[]};
   UU.push(a); uuSave(); uuRender(); uuAbrir(a.id);
@@ -3897,7 +3944,7 @@ uuLoad();
 window.uuAddAssessor=uuAddAssessor; window.uuAbrir=uuAbrir; window.uuFechar=uuFechar;
 window.uuEditNome=uuEditNome; window.uuTrocaFoto=uuTrocaFoto; window.uuFotoFile=uuFotoFile;
 window.uuRegistrar=uuRegistrar; window.uuDelSessao=uuDelSessao; window.uuRemoverAssessor=uuRemoverAssessor;
-window.uuRender=uuRender;
+window.uuRender=uuRender; window.uuMoeda=uuMoeda; window.uuCopiarEmail=uuCopiarEmail;
 
 function boot(){
   try{ if(typeof renderCov==='function') renderCov(); }catch(e){}
