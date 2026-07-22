@@ -1380,10 +1380,7 @@ function covSetFiltro(btn){
   renderCov();
 }
 /* clicar num papel da cobertura: se tiver detalhe rico (ASSETS) abre; senão filtra a lista de cima */
-function covAbrir(tk){
-  if(ASSETS.some(function(a){ return a.tk===tk; })) openAsset(tk);
-  /* papéis sem detalhe rico (fora de ASSETS) apenas exibem a linha de cobertura */
-}
+function covAbrir(tk){ openAsset(tk); }
 let currentAsset=null, currentPathObj=null;
 const STRUCT_IMG={};
 function renderStructImg(){
@@ -1546,10 +1543,22 @@ function drawDeriv(){
   };
   document.getElementById('dvNote').textContent=notes[s];
 }
+/* Monta um "ativo" no formato do detalhe a partir da cobertura do StockGuide,
+   para papéis que não estão no ASSETS rico (a maioria dos 154 cobertos). Assim
+   a análise, os gráficos e a simulação de estrutura abrem para qualquer papel. */
+function assetFromCov(tk){
+  var cv=(typeof xpCov==='function')?xpCov(tk):null; if(!cv) return null;
+  var preco=(cv[5]!=null&&!isNaN(cv[5]))?cv[5]:0;
+  return {tk:cv[0], nome:cv[1]||cv[0], setor:cv[2]||'—',
+    preco:preco, alvo:(cv[6]!=null?cv[6]:null), recom:cv[3]||'—',
+    risco:null, riscoLbl:'—', chg12:0, dy:cv[8], pl:cv[9], cns:cv[4],
+    analistas:[["Research XP","Cobertura Mesa RV — StockGuide"]],
+    tese:null, div:null, riscos:null, sobre:null, __cov:true};
+}
 function openAsset(tk){
-  const a=ASSETS.find(x=>x.tk===tk); if(!a) return;
+  let a=ASSETS.find(x=>x.tk===tk); if(!a) a=assetFromCov(tk); if(!a) return;
   const alvo=(a.alvo!=null)?a.alvo:null;
-  const pot=(alvo!=null)?((alvo/a.preco-1)*100):null;
+  const pot=(alvo!=null&&a.preco>0)?((alvo/a.preco-1)*100):null;
   const analistas=a.analistas||[["Research XP","Cobertura setorial"]];
   const tese=a.tese||"Resumo a completar — consulte o relatório completo e oficial no Research da XP para a tese, estimativas e recomendação atualizada deste ativo.";
   const dv=a.div||"A confirmar conforme a política de proventos da companhia.";
