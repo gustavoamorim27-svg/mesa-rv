@@ -310,6 +310,9 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .rv-var{font-size:11.5px;font-weight:700;min-width:52px;text-align:right;font-variant-numeric:tabular-nums;margin-right:4px}
 .rv-vartot{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#dcdcdc}
 .rv-vartot b{font-size:14px}
+.rv-fiiresumo{background:rgba(63,191,127,.08);border:1px solid rgba(63,191,127,.25);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;color:#dcdcdc}
+.rv-fiiresumo .lbl{display:inline-block;font-family:'Sora';font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#3fbf7f;margin-right:8px}
+.rv-fiiresumo b{font-size:13.5px}
 /* ===== 1:1 Assessores ===== */
 .uu-list{display:flex;flex-direction:column;gap:24px;margin-top:6px}
 .uu-team-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -1612,6 +1615,7 @@ function rvRenderDetail(d,cores){
     h+='<div class="rv-vartot">Variação da carteira <b style="color:'+col+'">'+(tot>=0?'+':'')+tot.toFixed(1).replace('.',',')+'%</b> '
       +'<span style="color:#9a9a9a;font-size:11px">(custo '+impBRL(cost)+' → hoje '+impBRL(mkt)+')</span></div>';
   }
+  h+='<div id="rvFiiResumo"></div>';   /* média de dividendos dos FIIs (preenchido async) */
   h+='<div class="rv-secs">';
   d.setores.forEach(function(s){
     var pct=d.g[s].tot/d.total*100, sel=(RV_PIE_SETOR===s);
@@ -1637,6 +1641,43 @@ function rvRenderDetail(d,cores){
   }
   host.innerHTML=h;
   if(RV_PIE_SETOR && d.g[RV_PIE_SETOR]){ try{ fiiCarregar(d.g[RV_PIE_SETOR].itens.map(function(it){return it[0];})); }catch(e){} }
+  try{ rvFiiCarregar(); }catch(e){}
+}
+/* ===== Média de dividendos dos FIIs da carteira ===================
+   Soma o provento mensal de cada FII (posição × yield do mês) e a média
+   ponderada em % sobre o valor total investido em FIIs. */
+function rvFiiLista(){
+  var ci=window.CART_IMPORT||{}; var aloc=ci.aloc||[];
+  return aloc.filter(function(a){ return isFII(a[0]); });
+}
+function rvFiiResumoCalc(){
+  var fiis=rvFiiLista(); if(!fiis.length) return null;
+  var totVal=0, totDiv=0, comDado=0;
+  fiis.forEach(function(a){ var d=FII_DIV[a[0]]; totVal+=a[1];
+    if(d && d.pct!=null){ totDiv+=a[1]*d.pct/100; comDado++; } });
+  return {n:fiis.length, comDado:comDado, totVal:totVal, divMes:totDiv, avgMes:(totVal>0?totDiv/totVal*100:null)};
+}
+function rvFiiResumoRender(){
+  var host=document.getElementById('rvFiiResumo'); if(!host) return;
+  var r=rvFiiResumoCalc();
+  if(!r){ host.innerHTML=''; return; }
+  if(r.comDado===0){ host.innerHTML='<div class="rv-fiiresumo">Dividendos dos FIIs · <span style="color:#9a9a9a">calculando…</span></div>'; return; }
+  var aa=(r.avgMes!=null)?r.avgMes*12:null;
+  var falta=(r.comDado<r.n)?(' <span style="color:#8a8a8a;font-size:11px">('+r.comDado+'/'+r.n+' FIIs com dado)</span>'):'';
+  host.innerHTML='<div class="rv-fiiresumo"><span class="lbl">Dividendos dos FIIs</span>'
+    +'<b style="color:#3fbf7f">'+impBRL(r.divMes)+'/mês</b> · média '
+    +'<b style="color:#3fbf7f">'+(r.avgMes!=null?r.avgMes.toFixed(2).replace('.',','):'—')+'% a.m.</b>'
+    +(aa!=null?(' <span style="color:#9a9a9a">('+aa.toFixed(1).replace('.',',')+'% a.a.)</span>'):'')+falta+'</div>';
+}
+function rvFiiCarregar(){
+  var fiis=rvFiiLista();
+  rvFiiResumoRender();
+  if(!fiis.length || !window.MesaLive || !MesaLive.fiiDiv) return;
+  fiis.forEach(function(a){ var tk=a[0];
+    if(FII_DIV[tk] && (Date.now()-FII_DIV[tk].t)<3600000) return;
+    MesaLive.fiiDiv(tk+'.SA').then(function(d){ if(d&&d.pct!=null){ d.t=Date.now(); FII_DIV[tk]=d; rvFiiResumoRender(); } }).catch(function(){});
+  });
+  setTimeout(rvFiiResumoRender,150);
 }
 function rvSelSetor(s){
   RV_PIE_SETOR=(RV_PIE_SETOR===s?null:s);
