@@ -3858,6 +3858,12 @@ function uuRemoverAssessor(){
   UU=UU.filter(function(x){ return x.id!==a.id; }); uuSave(); uuFechar();
 }
 uuLoad();
+/* o script 3 é um IIFE — as funções uu* ficam locais; os onclick do HTML olham
+   para o escopo global, então expomos as usadas nos atributos onclick. */
+window.uuAddAssessor=uuAddAssessor; window.uuAbrir=uuAbrir; window.uuFechar=uuFechar;
+window.uuEditNome=uuEditNome; window.uuTrocaFoto=uuTrocaFoto; window.uuFotoFile=uuFotoFile;
+window.uuRegistrar=uuRegistrar; window.uuDelSessao=uuDelSessao; window.uuRemoverAssessor=uuRemoverAssessor;
+window.uuRender=uuRender;
 
 function boot(){
   try{ if(typeof renderCov==='function') renderCov(); }catch(e){}
