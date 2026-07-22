@@ -280,6 +280,14 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .imp-sechead i{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .imp-secsub{color:#9a9a9a;font-weight:600;font-size:10.5px;letter-spacing:0}
 .imp-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.cov-wrap{max-height:560px;overflow:auto}
+.cov-tbl th{position:sticky;top:0;background:var(--panel);z-index:2}
+.cov-secrow td{background:#141414;font-family:'Sora';font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--yellow);padding:8px 12px!important;border-top:1px solid var(--line-2)}
+.cov-secrow .n{color:#8f8f8f;font-weight:600}
+.cov-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.cov-fbtn{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:4px 12px;font-size:11px;color:#c8c8c8;cursor:pointer;font-family:inherit}
+.cov-fbtn.on{background:var(--yellow);color:#111;border-color:var(--yellow);font-weight:700}
+.cov-cns{font-size:10.5px;color:#9a9a9a;white-space:nowrap}
 .imp-secrow td{background:var(--panel-2);font-family:'Sora';font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#cfcfcf;padding:6px 8px!important}
 .imp-secrow td.num{color:#efefef}
 .imp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11.5px;color:#d4d4d4;white-space:nowrap}
@@ -625,6 +633,7 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <svg id="cartImpDonut" viewBox="0 0 220 220" style="width:100%;max-width:230px;display:block;margin:0 auto"></svg>
         <div id="cartImpLegend" class="cart-legend"></div>
         <div id="cartImpTable" style="margin-top:16px;overflow-x:auto"></div>
+        <div id="cartSugerida" style="margin-top:22px"></div>
       </div>
     </div>
     <p class="note-inline">A leitura acontece no seu navegador (o arquivo não sai do computador). Excel (.xlsx) usa uma biblioteca que carrega da internet na primeira vez; <b>CSV funciona 100% offline</b>. Se o Excel não carregar, salve como CSV.</p>
@@ -642,6 +651,18 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
         <tbody id="rvrows"></tbody>
       </table>
     </div>
+
+    <div class="section-label" style="margin-top:26px"><span class="dot"></span><span>COBERTURA MESA RV XP · TODOS OS PAPÉIS</span><span class="ln"></span></div>
+    <div class="page-head" style="margin-bottom:10px">
+      <div><p style="margin:0;color:#a2a2a2;font-size:12.5px">Consenso do StockGuide da Mesa RV da XP, organizado por setor. Recomendação da XP, consenso de mercado (Compra/Neutro/Venda dos analistas), preço, alvo, potencial e dividend yield.</p></div>
+      <div class="searchbox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c2c2c2" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input id="qcov" placeholder="Filtrar ticker, empresa ou setor…" oninput="renderCov()"></div>
+    </div>
+    <div class="cov-toolbar" id="covToolbar"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="cov-wrap"><table class="rvtable cov-tbl" id="covTable"></table></div>
+    </div>
+    <p class="note-inline" style="margin-top:8px">Fonte: StockGuide Mesa RV XP (21/05/2026). Preço-alvo e recomendação são da cobertura da XP; consenso é a contagem de casas do mercado. Não constitui recomendação personalizada; observar suitability.</p>
   </div>
 
   <!-- MESA / BOOK -->
@@ -908,6 +929,177 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
 
 <script>
 // ---- Ativos + detalhe (estilo XP) ----
+/* ===== Cobertura Mesa RV XP (StockGuide 21/05/2026) ================
+   Todos os papéis cobertos, por setor. Colunas do array:
+   [tk, nome, setor, recXP, consenso("C x N y V z"), preco, alvo, pot%, dy%, pl, ret1m%] */
+const XPCOV=[
+ ["RAIZ4", "Raizen Sa - Pn", "Agro, Alimentos & Bebidas", "Compra", "C 2 N 5 V 1", 0.42, 1.02, 143.9, 0.1, 210.0, -22.2],
+ ["JALL3", "Jalles Machado S", "Agro, Alimentos & Bebidas", "Compra", "C 6 N 2 V 0", 2.9, 4.57, 57.8, 6.0, 6.0, -9.1],
+ ["SOJA3", "Boa Safra Sement", "Agro, Alimentos & Bebidas", "Compra", "C 1 N 6 V 0", 6.65, 10.0, 50.3, 7.5, 7.7, -5.8],
+ ["BEEF3", "Minerva Sa", "Agro, Alimentos & Bebidas", "Compra", "C 3 N 13 V 0", 4.26, 6.34, 48.8, 10.2, 4.8, 3.1],
+ ["VITT3", "Vittia Fertiliza", "Agro, Alimentos & Bebidas", "Compra", "C 2 N 1 V 0", 3.56, 4.88, 37.0, 8.6, 11.5, -4.8],
+ ["CAML3", "Camil Alimentos", "Agro, Alimentos & Bebidas", "Compra", "C 5 N 1 V 1", 5.76, 7.72, 34.1, 5.8, 7.9, -14.2],
+ ["TTEN3", "Tres Tentos Agro", "Agro, Alimentos & Bebidas", "Compra", "C 12 N 0 V 0", 16.15, 21.39, 32.5, 2.7, 9.7, 0.8],
+ ["AGRO3", "Brasilagro", "Agro, Alimentos & Bebidas", "Neutro", "C 2 N 2 V 0", 18.7, 24.5, 31.0, 6.2, 4.6, -5.7],
+ ["MDIA3", "M Dias Branco Sa", "Agro, Alimentos & Bebidas", "Neutro", "C 0 N 9 V 1", 19.71, 25.5, 29.4, 4.5, 9.4, -16.4],
+ ["SMTO3", "Sao Martinho", "Agro, Alimentos & Bebidas", "Neutro", "C 3 N 8 V 0", 18.07, 21.7, 20.1, 3.5, 9.2, 9.6],
+ ["SLCE3", "Slc Agricola Sa", "Agro, Alimentos & Bebidas", "Neutro", "C 5 N 9 V 0", 16.52, 19.52, 18.2, 3.9, 12.2, -7.5],
+ ["ABEV3", "Ambev Sa", "Agro, Alimentos & Bebidas", "Venda", "C 2 N 11 V 5", 16.22, 15.87, -2.1, 6.0, 16.7, 5.9],
+ ["AGXY3", "Agrogalaxy Parti", "Agro, Alimentos & Bebidas", "Sob revisão", "C 0 N 0 V 0", 1.86, null, null, 0.0, null, -7.0],
+ ["BRFS3", "Brf Sa", "Agro, Alimentos & Bebidas", "Sem cobertura", "C 2 N 7 V 0", null, null, null, 0.0, null, null],
+ ["JBSS3", "Jbs", "Agro, Alimentos & Bebidas", "Sem cobertura", "C 7 N 1 V 0", null, null, null, 0.0, null, null],
+ ["MRFG3", "Mbrf Global Food", "Agro, Alimentos & Bebidas", "Sem cobertura", "C 8 N 9 V 1", null, 23.87, null, 0.0, null, null],
+ ["ANIM3", "Anima Holding Sa", "Educação", "Sob revisão", "C 11 N 1 V 0", 3.39, 6.57, 93.9, 6.3, 7.8, -25.8],
+ ["CSED3", "Cruzeiro Do Sul", "Educação", "Sob revisão", "C 5 N 0 V 1", 4.32, 7.7, 78.2, 16.1, 6.0, -29.5],
+ ["YDUQ3", "Yduqs Part", "Educação", "Sob revisão", "C 9 N 4 V 1", 9.78, 17.08, 74.7, 6.4, 7.6, -17.0],
+ ["COGN3", "Cogna Educacao", "Educação", "Sob revisão", "C 9 N 5 V 0", 2.54, 4.29, 68.8, 5.3, 6.5, -23.0],
+ ["SEER3", "Ser Educacional", "Educação", "Sob revisão", "C 6 N 2 V 0", 12.29, 16.41, 33.5, 8.8, 7.9, -10.6],
+ ["LIGT3", "Light Sa", "Energia Elétrica & Saneamento", "Compra", "C 1 N 1 V 1", 2.85, 5.15, 80.7, 4.4, 7.8, -46.2],
+ ["ENGI11", "Energisa-Units", "Energia Elétrica & Saneamento", "Compra", "C 10 N 2 V 0", 48.7, 64.39, 32.2, 3.7, 8.0, -15.3],
+ ["EQTL3", "Equatorial Sa -", "Energia Elétrica & Saneamento", "Compra", "C 16 N 0 V 0", 38.55, 49.18, 27.6, 2.4, 15.9, -14.4],
+ ["ALUP11", "Alupar Inv-Unit", "Energia Elétrica & Saneamento", "Compra", "C 10 N 2 V 0", 32.5, 38.43, 18.3, 4.3, 15.2, -10.5],
+ ["ENEV3", "Eneva Sa", "Energia Elétrica & Saneamento", "Sem cobertura", "C 11 N 0 V 0", 25.21, 29.26, 16.1, 0.1, 27.0, -7.6],
+ ["AURE3", "Auren Energia", "Energia Elétrica & Saneamento", "Neutro", "C 2 N 10 V 1", 12.6, 14.5, 15.1, 0.5, null, -13.8],
+ ["CPFE3", "Cpfl Energia Sa", "Energia Elétrica & Saneamento", "Compra", "C 1 N 8 V 4", 44.37, 50.95, 14.8, 7.6, 10.0, -19.9],
+ ["SBSP3", "Sabesp", "Energia Elétrica & Saneamento", "Compra", "C 15 N 2 V 1", 29.15, 33.35, 14.4, 3.8, 13.9, -17.2],
+ ["CMIG4", "Cemig-Pref", "Energia Elétrica & Saneamento", "Neutro", "C 0 N 9 V 4", 11.53, 12.57, 9.0, 6.6, 8.0, -16.0],
+ ["SAPR11", "Sanepar-Unit", "Energia Elétrica & Saneamento", "Compra", "C 1 N 8 V 3", 38.09, 41.44, 8.8, 5.2, 6.6, -9.6],
+ ["EGIE3", "Engie Br Ener Sa", "Energia Elétrica & Saneamento", "Neutro", "C 0 N 9 V 6", 32.36, 34.18, 5.6, 5.2, 11.0, -13.5],
+ ["TAEE11", "Transm Alian-Uni", "Energia Elétrica & Saneamento", "Neutro", "C 0 N 6 V 8", 38.56, 38.04, -1.4, 10.0, 11.9, -15.9],
+ ["CSMG3", "Copasa Mg - Ord", "Energia Elétrica & Saneamento", "Compra", "C 7 N 5 V 0", 52.8, 51.84, -1.8, 3.1, 14.4, -9.0],
+ ["CPLE6", "Companhia-Pref B", "Energia Elétrica & Saneamento", "Sem cobertura", "C 0 N 0 V 0", null, null, null, 0.0, null, null],
+ ["ELET3", "Axia Energia", "Energia Elétrica & Saneamento", "Sem cobertura", "C 16 N 0 V 0", null, 65.05, null, 0.0, null, null],
+ ["ELET6", "Eletrobras-Pr B", "Energia Elétrica & Saneamento", "Sem cobertura", "C 0 N 0 V 0", null, null, null, 0.0, null, null],
+ ["AESB3", "Auren Participac", "Energia Elétrica & Saneamento", "Sem cobertura", "C 0 N 0 V 0", null, null, null, 0.0, null, null],
+ ["TRPL4", "Isa Energia Bras", "Energia Elétrica & Saneamento", "Sem cobertura", "C 3 N 10 V 2", null, 29.0, null, 0.0, null, null],
+ ["QUAL3", "Qualicorp Sa", "Bancos & Financeiro", "Sem cobertura", "C 2 N 5 V 2", 1.86, 3.11, 67.4, 2.6, 7.2, -7.9],
+ ["SANB11", "Banco Santa-Unit", "Bancos & Financeiro", "Compra", "C 4 N 9 V 1", 27.45, 37.94, 38.2, 8.2, 6.6, -13.1],
+ ["ITSA4", "Itausa-Pref", "Bancos & Financeiro", "Sem cobertura", "C 7 N 0 V 0", 13.0, 16.98, 30.6, 9.2, 8.6, -11.8],
+ ["BBDC4", "Bradesco Sa-Pref", "Bancos & Financeiro", "Neutro", "C 9 N 5 V 1", 17.86, 23.08, 29.2, 8.4, 7.7, -15.1],
+ ["ITUB4", "Itau Uniban-Pref", "Bancos & Financeiro", "Compra", "C 12 N 3 V 0", 39.67, 49.84, 25.6, 7.4, 9.3, -14.4],
+ ["BBAS3", "Banco Do Brasil", "Bancos & Financeiro", "Neutro", "C 2 N 11 V 2", 20.7, 25.21, 21.8, 5.7, 6.3, -14.7],
+ ["BPAC11", "Bco Btg Pac-Unit", "Bancos & Financeiro", "Compra", "C 12 N 4 V 0", 54.2, 65.47, 20.8, 3.5, 12.6, -15.5],
+ ["IRBR3", "Irb Brasil Resse", "Bancos & Financeiro", "Sem cobertura", "C 4 N 3 V 0", 53.38, 60.71, 13.7, 5.1, 8.7, -8.4],
+ ["PSSA3", "Porto Seguro Sa", "Bancos & Financeiro", "Sem cobertura", "C 5 N 7 V 0", 49.22, 54.9, 11.5, 6.5, 9.6, -11.2],
+ ["BMGB4", "Bmg (Banco)-Pref", "Bancos & Financeiro", "Sem cobertura", "C 2 N 1 V 0", 5.21, 5.48, 5.2, 8.0, 6.0, -6.8],
+ ["BBSE3", "Bb Seguridade Pa", "Bancos & Financeiro", "Sem cobertura", "C 1 N 10 V 3", 34.71, 36.42, 4.9, 11.5, 7.6, -1.6],
+ ["BRSR6", "Banrisul-Pref B", "Bancos & Financeiro", "Sem cobertura", "C 1 N 3 V 4", 14.79, 14.93, 0.9, 8.9, 4.7, -8.1],
+ ["BBDC3", "Bradesco Sa", "Bancos & Financeiro", "Sem cobertura", "C 0 N 0 V 0", 15.49, null, null, 0.0, 6.7, -14.2],
+ ["BPAN4", "Banco Pan Sa", "Bancos & Financeiro", "Sem cobertura", "C 1 N 1 V 1", null, null, null, 0.0, null, null],
+ ["CIEL3", "Cielo Sa", "Bancos & Financeiro", "Sem cobertura", "C 0 N 0 V 0", null, null, null, 0.0, null, null],
+ ["ABCB4", "Abc Brasil-Pref", "Bancos & Financeiro", "Sem cobertura", "", 24.39, null, null, 7.8, 5.9, -6.9],
+ ["PLPL3", "Plano & Plano De", "Imobiliário", "Compra", "C 10 N 0 V 0", 10.41, 21.6, 107.5, 8.8, 5.9, -21.6],
+ ["LAVV3", "Lavvi Empreendim", "Imobiliário", "Compra", "C 5 N 0 V 0", 11.7, 22.2, 89.7, 11.2, 5.4, -22.5],
+ ["TRIS3", "Trisul Sa", "Imobiliário", "Neutro", "C 1 N 4 V 0", 4.41, 7.68, 74.3, 12.1, 4.6, -22.4],
+ ["CYRE3", "Cyrela", "Imobiliário", "Compra", "C 11 N 3 V 0", 22.14, 36.78, 66.1, 7.2, 4.5, -20.3],
+ ["MRVE3", "Mrv Engenharia", "Imobiliário", "Compra", "C 7 N 8 V 0", 6.44, 10.66, 65.6, 1.9, null, -16.0],
+ ["EVEN3", "Even", "Imobiliário", "Compra", "C 1 N 6 V 1", 5.75, 8.74, 52.0, 10.7, 4.6, -14.7],
+ ["DXCO3", "Dexco Sa", "Imobiliário", "Sem cobertura", "C 9 N 1 V 0", 4.99, 7.43, 48.9, 1.6, 41.6, -12.0],
+ ["DIRR3", "Direcional Engen", "Imobiliário", "Compra", "C 12 N 1 V 0", 13.34, 19.79, 48.4, 7.3, 8.7, -10.5],
+ ["CURY3", "Cury Construtora", "Imobiliário", "Compra", "C 11 N 2 V 0", 31.3, 45.65, 45.9, 9.4, 9.7, -9.5],
+ ["MELK3", "Melnick Even Des", "Imobiliário", "Compra", "C 1 N 2 V 0", 3.23, 4.6, 42.4, 10.5, 6.1, -10.0],
+ ["EZTC3", "Ez Tec", "Imobiliário", "Neutro", "C 7 N 4 V 2", 13.16, 18.49, 40.5, 6.5, 6.4, -18.7],
+ ["TEND3", "Const Tenda", "Imobiliário", "Compra", "C 13 N 0 V 0", 31.14, 42.88, 37.7, 5.6, 8.3, -4.9],
+ ["LOGG3", "Log Commercial P", "Imobiliário", "Neutro", "C 5 N 4 V 0", 25.4, 30.23, 19.0, 3.8, 5.9, -7.7],
+ ["GFSA3", "Gafisa", "Imobiliário", "Sem cobertura", "C 0 N 0 V 0", 1.16, null, null, 0.0, null, -22.2],
+ ["CSNA3", "Sid Nacional", "Mineração & Siderurgia", "Neutro", "C 0 N 10 V 4", 6.13, 8.33, 35.9, 2.6, null, -10.1],
+ ["AURA33", "Aura Mineral-Bdr", "Mineração & Siderurgia", "Compra", "C 6 N 0 V 0", 125.58, 155.66, 24.0, 12.7, 5.9, -28.0],
+ ["BRAP4", "Bradespar Sa -Pr", "Mineração & Siderurgia", "Neutro", "C 2 N 2 V 1", 23.03, 27.56, 19.7, 8.0, 6.9, -8.5],
+ ["CMIN3", "Csn Mineracao Sa", "Mineração & Siderurgia", "Neutro", "C 1 N 5 V 7", 4.5, 5.34, 18.7, 7.3, 21.6, -10.7],
+ ["GOAU4", "Met Gerdau-Pref", "Mineração & Siderurgia", "Compra", "C 3 N 1 V 0", 10.25, 11.63, 13.5, 3.7, 11.5, 8.5],
+ ["VALE3", "Vale Sa", "Mineração & Siderurgia", "Neutro", "C 6 N 9 V 0", 82.0, 89.1, 8.7, 6.1, 7.7, -7.6],
+ ["GGBR4", "Gerdau-Pref", "Mineração & Siderurgia", "Compra", "C 13 N 5 V 0", 23.47, 25.3, 7.8, 4.4, 13.3, 9.5],
+ ["USIM5", "Usiminas-Pref A", "Mineração & Siderurgia", "Neutro", "C 6 N 10 V 1", 9.61, 8.56, -10.9, 2.5, null, 32.2],
+ ["SUZB3", "Suzano Sa", "Papel & Celulose", "Compra", "C 18 N 2 V 0", 42.2, 66.44, 57.4, 3.4, 3.6, -11.7],
+ ["RANI3", "Irani Sa", "Papel & Celulose", "Compra", "C 4 N 1 V 0", 7.96, 11.7, 47.0, 7.4, 7.1, -11.0],
+ ["KLBN11", "Klabin Sa - Unit", "Papel & Celulose", "Compra", "C 9 N 8 V 0", 16.52, 23.06, 39.6, 7.2, 8.9, -11.9],
+ ["CSAN3", "Cosan Sa", "Petróleo & Gás", "Compra", "C 3 N 4 V 0", 4.32, 7.86, 81.9, 0.7, null, -18.5],
+ ["BRAV3", "Brava Energia", "Petróleo & Gás", "Compra", "C 7 N 4 V 0", 19.75, 24.23, 22.7, 4.8, 4.9, -3.2],
+ ["PETR3", "Petrobras", "Petróleo & Gás", "Compra", "C 7 N 2 V 0", 49.68, 58.57, 17.9, 10.3, 6.2, -4.0],
+ ["RECV3", "Petroreconcavo S", "Petróleo & Gás", "Compra", "C 1 N 12 V 1", 12.19, 14.15, 16.1, 11.2, 5.7, -6.9],
+ ["PETR4", "Petrobras-Pref", "Petróleo & Gás", "Compra", "C 11 N 5 V 0", 44.6, 51.46, 15.4, 10.5, 5.6, -5.1],
+ ["UGPA3", "Ultrapar", "Petróleo & Gás", "Neutro", "C 8 N 9 V 0", 29.02, 31.81, 9.6, 4.8, 12.5, -2.8],
+ ["VBBR3", "Vibra Energia Sa", "Petróleo & Gás", "Compra", "C 14 N 3 V 0", 33.34, 36.23, 8.7, 4.1, 18.8, -0.1],
+ ["PRIO3", "Prio Sa", "Petróleo & Gás", "Compra", "C 11 N 5 V 0", 68.63, 68.22, -0.6, 10.5, 18.0, 11.4],
+ ["BRKM5", "Braskem-Pref A", "Petróleo & Gás", "Neutro", "C 3 N 7 V 2", 12.18, 11.74, -3.6, 0.0, null, 35.6],
+ ["DASA3", "Diagnosticos Ame", "Saúde", "Sob revisão", "C 2 N 8 V 0", 3.1, 4.4, 41.9, 1.4, null, -5.2],
+ ["RDOR3", "Rede D'Or Sao Lu", "Saúde", "Sob revisão", "C 13 N 1 V 0", 34.99, 49.62, 41.8, 4.4, 16.7, -11.3],
+ ["MATD3", "Hospital Mater D", "Saúde", "Sob revisão", "C 5 N 3 V 0", 5.26, 7.11, 35.3, 2.1, 16.4, -9.3],
+ ["BLAU3", "Blau Farmaceutic", "Saúde", "Sob revisão", "C 4 N 7 V 0", 10.76, 12.45, 15.7, 4.0, 8.2, -5.4],
+ ["FLRY3", "Fleury Sa", "Saúde", "Sob revisão", "C 5 N 4 V 2", 15.8, 17.45, 10.4, 6.4, 14.6, -5.3],
+ ["HAPV3", "Hapvida Particip", "Saúde", "Sob revisão", "C 1 N 12 V 1", 13.27, 14.18, 6.8, 0.8, 8.0, 7.2],
+ ["AALR3", "Es Sao De Imagem", "Saúde", "Sem cobertura", "C 0 N 0 V 0", 3.25, null, null, 0.0, null, 3.2],
+ ["ODPV3", "Odontoprev", "Saúde", "Sob revisão", "C 4 N 4 V 1", null, 15.12, null, 0.0, null, null],
+ ["MULT3", "Multiplan", "Shoppings", "Compra", "C 12 N 3 V 0", 30.11, 38.0, 26.2, 4.1, 13.9, -12.5],
+ ["ALOS3", "Allos Sa", "Shoppings", "Compra", "C 11 N 3 V 0", 28.66, 35.12, 22.5, 11.8, 17.4, -14.4],
+ ["JHSF3", "Jhsf Part", "Shoppings", "Compra", "C 5 N 1 V 0", 10.75, 10.76, 0.1, 6.0, 11.6, -23.8],
+ ["TIMS3", "Tim Sa", "Telecomunicações", "Compra", "C 5 N 9 V 1", 22.5, 26.99, 19.9, 9.2, 13.2, -16.2],
+ ["VIVT3", "Telef Brasil", "Telecomunicações", "Compra", "C 8 N 5 V 4", 35.4, 40.26, 13.7, 7.9, 16.2, -13.7],
+ ["ALLD3", "Allied Tecnologi", "Tecnologia", "Sob revisão", "C 1 N 0 V 0", 5.99, 11.5, 92.0, 0.0, null, -11.3],
+ ["CASH3", "Meliuz Sa-On", "Tecnologia", "Sob revisão", "C 2 N 1 V 0", 4.09, 6.65, 62.6, 2.1, 8.1, -7.7],
+ ["POSI3", "Positivo Tecnolo", "Tecnologia", "Compra", "C 2 N 2 V 0", 4.17, 6.18, 48.1, 9.0, 3.1, -10.9],
+ ["BMOB3", "Bemobi Mobile Te", "Tecnologia", "Compra", "C 3 N 1 V 0", 25.02, 30.45, 21.7, 9.1, 14.1, -9.2],
+ ["ORVR3", "Orizon Valorizac", "Tecnologia", "Compra", "C 9 N 0 V 0", 79.2, 92.85, 17.2, 2.1, 68.6, -5.0],
+ ["JSLG3", "Jsl Sa", "Transportes & Bens Industriais", "Compra", "C 7 N 2 V 0", 6.87, 12.24, 78.2, 15.9, 21.9, -14.7],
+ ["SIMH3", "Simpar Sa", "Transportes & Bens Industriais", "Compra", "C 6 N 4 V 0", 9.42, 16.67, 77.0, 0.9, null, -26.7],
+ ["ECOR3", "Ecorodovias", "Transportes & Bens Industriais", "Compra", "C 10 N 4 V 0", 7.92, 13.21, 66.8, 2.8, 6.1, -20.9],
+ ["VAMO3", "Vamos Locacao De", "Transportes & Bens Industriais", "Compra", "C 9 N 5 V 0", 3.41, 5.63, 65.1, 5.2, 8.5, -25.4],
+ ["MYPK3", "Iochp-Maxion", "Transportes & Bens Industriais", "Compra", "C 6 N 3 V 1", 9.04, 14.6, 61.5, 8.2, 9.1, -14.2],
+ ["RAPT4", "Randoncorp Sa", "Transportes & Bens Industriais", "Compra", "C 7 N 5 V 0", 5.0, 8.0, 60.0, 3.0, 138.9, -10.4],
+ ["MOVI3", "Movida Participa", "Transportes & Bens Industriais", "Compra", "C 8 N 5 V 0", 9.55, 14.63, 53.2, 4.8, 11.4, -33.8],
+ ["POMO4", "Marcopolo-Pref", "Transportes & Bens Industriais", "Compra", "C 10 N 1 V 0", 5.98, 9.13, 52.7, 7.9, 5.9, -15.8],
+ ["PRNR3", "Priner Servicos", "Transportes & Bens Industriais", "Compra", "C 3 N 0 V 0", 19.09, 26.66, 39.7, 2.7, null, -9.3],
+ ["HBSA3", "Hidrovias Do Bra", "Transportes & Bens Industriais", "Compra", "C 4 N 2 V 1", 3.26, 4.54, 39.4, 1.6, 18.7, -11.2],
+ ["TUPY3", "Tupy", "Transportes & Bens Industriais", "Neutro", "C 1 N 7 V 1", 13.4, 17.56, 31.0, 4.0, 54.5, -15.5],
+ ["RENT3", "Localiza", "Transportes & Bens Industriais", "Compra", "C 14 N 3 V 0", 44.47, 57.69, 29.7, 5.2, 17.2, -14.4],
+ ["RAIL3", "Rumo Sa", "Transportes & Bens Industriais", "Compra", "C 10 N 4 V 1", 15.02, 19.39, 29.1, 2.6, 19.2, -8.8],
+ ["WEGE3", "Weg Sa", "Transportes & Bens Industriais", "Neutro", "C 6 N 9 V 2", 42.58, 52.37, 23.0, 1.7, 27.8, -12.2],
+ ["MILS3", "Mills Estruturas", "Transportes & Bens Industriais", "Compra", "C 5 N 3 V 1", 13.34, 15.71, 17.8, 10.5, 10.0, -8.0],
+ ["LEVE3", "Metal Leve", "Transportes & Bens Industriais", "Sem cobertura", "C 0 N 4 V 1", 32.78, 36.0, 9.8, 11.3, 7.5, -11.4],
+ ["AERI3", "Aeris Industria", "Transportes & Bens Industriais", "Sem cobertura", "C 0 N 0 V 0", 2.28, null, null, 0.0, null, -21.4],
+ ["AZUL4", "Azul Sa", "Transportes & Bens Industriais", "Sob revisão", "C 0 N 1 V 0", null, null, null, 0.0, null, null],
+ ["CCRO3", "Ccr Sa", "Transportes & Bens Industriais", "Sem cobertura", "C 10 N 3 V 1", null, 18.88, null, 0.0, null, null],
+ ["EMBR3", "Embraer", "Transportes & Bens Industriais", "Neutro", "C 6 N 1 V 0", null, 92.17, null, 0.0, null, null],
+ ["GOLL4", "Gol-Pref", "Transportes & Bens Industriais", "Sem cobertura", "C 0 N 0 V 1", null, null, null, 0.0, null, null],
+ ["SEQL3", "Sequoia Logistic", "Transportes & Bens Industriais", "Sem cobertura", "C 1 N 0 V 0", 0.12, null, null, 0.0, null, -29.4],
+ ["STBP3", "Santos Brp-Ord", "Transportes & Bens Industriais", "Sem cobertura", "C 1 N 0 V 0", null, null, null, 0.0, null, null],
+ ["CEAB3", "C&A Modas Ltda", "Varejo", "Compra", "C 12 N 1 V 0", 11.15, 18.91, 69.6, 5.2, 6.8, -14.1],
+ ["PGMN3", "Empreendimentos", "Varejo", "Compra", "C 6 N 1 V 1", 4.72, 7.92, 67.9, null, 12.3, -18.5],
+ ["AZZA3", "Azzas 2154 Sa", "Varejo", "Compra", "C 7 N 7 V 1", 19.6, 31.82, 62.4, 6.7, 5.5, -10.4],
+ ["TOTS3", "Totvs Sa", "Varejo", "Compra", "C 12 N 1 V 0", 32.1, 51.58, 60.7, 2.7, 20.8, -7.9],
+ ["LWSA3", "Lwsa Sa", "Varejo", "Neutro", "C 10 N 2 V 0", 3.75, 5.95, 58.8, 4.0, null, -9.6],
+ ["SBFG3", "Grupo Sbf Sa", "Varejo", "Compra", "C 9 N 1 V 0", 10.86, 17.17, 58.1, 4.1, 7.0, -17.5],
+ ["VIVA3", "Vivara Participa", "Varejo", "Compra", "C 13 N 2 V 0", 22.66, 35.29, 55.7, 3.6, 8.2, -17.6],
+ ["CVCB3", "Cvc Brasil Opera", "Varejo", "Sem cobertura", "C 1 N 3 V 0", 1.8, 2.72, 51.4, 0.0, null, -15.5],
+ ["VULC3", "Vulcabras Sa", "Varejo", "Compra", "C 7 N 0 V 0", 15.22, 22.5, 47.8, 7.0, 5.5, -11.6],
+ ["GMAT3", "Grupo Mateus Sa", "Varejo", "Compra", "C 5 N 4 V 1", 4.42, 6.5, 47.1, 2.1, 5.5, -5.2],
+ ["RADL3", "Raiadrogasil", "Varejo", "Neutro", "C 12 N 3 V 2", 19.13, 26.91, 40.7, 2.4, 24.8, -18.1],
+ ["ASAI3", "Sendas Distribui", "Varejo", "Compra", "C 11 N 6 V 0", 8.61, 11.7, 35.9, 2.3, 13.9, -9.8],
+ ["PCAR3", "Pao Acucar", "Varejo", "Neutro", "C 0 N 6 V 5", 2.17, 2.92, 34.6, 0.0, null, -16.2],
+ ["MGLU3", "Magazine Luiza", "Varejo", "Neutro", "C 2 N 10 V 4", 6.73, 8.92, 32.5, 4.9, 35.1, -28.0],
+ ["LREN3", "Lojas Renner Sa", "Varejo", "Compra", "C 11 N 5 V 0", 14.7, 19.21, 30.7, 6.1, 10.1, -3.0],
+ ["HYPE3", "Hypera Sa", "Varejo", "Sob revisão", "C 9 N 4 V 0", 22.67, 29.49, 30.1, 5.1, 12.5, -3.5],
+ ["DMVF3", "D1000 Varejo Far", "Varejo", "Sob revisão", "C 1 N 0 V 0", 5.86, 7.0, 19.5, 0.0, null, -15.3],
+ ["AMER3", "Americanas Sa", "Varejo", "Sob revisão", "C 0 N 0 V 0", 5.22, null, null, 0.0, null, -24.8],
+ ["CRFB3", "Atacadao Sa", "Varejo", "Sem cobertura", "C 0 N 1 V 0", null, null, null, 0.0, null, null],
+ ["ENJU3", "Enjoei.Com.Br At", "Varejo", "Neutro", "C 0 N 0 V 0", 1.08, null, null, 0.0, null, -7.7],
+ ["GRND3", "Grendene Sa", "Varejo", "Sob revisão", "C 0 N 0 V 0", 4.04, null, null, 0.0, null, -15.8],
+ ["GUAR3", "Riachuelo", "Varejo", "Compra", "C 10 N 1 V 0", null, 14.06, null, 0.0, null, null],
+ ["NTCO3", "Natura &Co Holdi", "Varejo", "Sem cobertura", "C 1 N 3 V 0", null, 18.0, null, 0.0, null, null],
+];
+var XPCOV_MAP={};
+XPCOV.forEach(function(r){ XPCOV_MAP[r[0]]=r; });
+function xpCov(tk){ return XPCOV_MAP[String(tk||'').toUpperCase()] || (typeof impAlias==='function'?XPCOV_MAP[impAlias(tk)]:null) || null; }
+/* setores na ordem do StockGuide */
+var XPCOV_SETORES=(function(){ var seen=[],s={}; XPCOV.forEach(function(r){ if(!s[r[2]]){s[r[2]]=1;seen.push(r[2]);} }); return seen; })();
+function xpCovPorSetor(){ var g={}; XPCOV.forEach(function(r){ (g[r[2]]=g[r[2]]||[]).push(r); }); return g; }
+/* favorita do setor = maior potencial com recomendação de Compra */
+function xpFavoritaSetor(setor){
+  var lista=XPCOV.filter(function(r){ return r[2]===setor && r[3]==='Compra' && typeof r[7]==='number'; });
+  lista.sort(function(a,b){ return (b[7]||-999)-(a[7]||-999); });
+  return lista[0]||null;
+}
+
 const ASSETS = [
  {tk:"BPAC11",nome:"BTG Pactual",setor:"Bancos",preco:57.18,chg12:30,alvo:63.00,pot:10.18,risco:43,riscoLbl:"Alto",recom:"Compra",
   analistas:[["Bernardo Guttmann","Head TMT e Financeiro"],["Matheus Guimarães, CFA","Analista Financeiro"],["Guilherme Meneghetti","Analista Financeiro"]],
@@ -1149,6 +1341,71 @@ function renderRV(){
       <td class="go">›</td>
     </tr>`;
   }).join('');
+}
+/* ===== Cobertura completa na aba RV ===== */
+var COV_FILTRO='todas';
+function covRecClass(r){
+  if(r==='Compra') return 'rec-compra';
+  if(r==='Venda') return 'rec-venda';
+  if(r==='Neutro') return 'rec-neutro';
+  return 'rec-na';
+}
+function covPct(v,cor){
+  if(v==null||isNaN(v)) return '<span style="color:#777">—</span>';
+  var c = cor ? (v>=0?'var(--green)':'var(--red)') : '#d0d0d0';
+  return '<span style="color:'+c+'">'+(v>=0?'+':'')+v.toFixed(1).replace('.',',')+'%</span>';
+}
+function covBRL(v){ return (v==null||isNaN(v))?'<span style="color:#777">—</span>':('R$ '+v.toFixed(2).replace('.',',')); }
+function renderCov(){
+  var q=(document.getElementById('qcov').value||'').trim().toUpperCase();
+  var grupos=xpCovPorSetor();
+  var head='<thead><tr><th class="l">Ativo</th><th>Rec. XP</th><th>Consenso</th><th class="num">Preço</th><th class="num">Alvo</th><th class="num">Potencial</th><th class="num">DY</th><th class="num">P/L 25</th><th class="num">1M</th></tr></thead>';
+  var body='', totMostra=0;
+  XPCOV_SETORES.forEach(function(sec){
+    var linhas=(grupos[sec]||[]).filter(function(r){
+      if(COV_FILTRO==='compra' && r[3]!=='Compra') return false;
+      if(COV_FILTRO==='cobertas' && (r[3]==='Sem cobertura'||r[3]==='—')) return false;
+      if(!q) return true;
+      return r[0].indexOf(q)>=0 || (r[1]||'').toUpperCase().indexOf(q)>=0 || sec.toUpperCase().indexOf(q)>=0;
+    });
+    if(!linhas.length) return;
+    totMostra+=linhas.length;
+    body+='<tr class="cov-secrow"><td colspan="9">'+sec+' <span class="n">· '+linhas.length+'</span></td></tr>';
+    linhas.forEach(function(r){
+      body+='<tr onclick="covAbrir(\''+r[0]+'\')" style="cursor:pointer">'
+        +'<td class="l"><div class="tk">'+r[0]+'</div><div class="nm">'+(r[1]||'')+'</div></td>'
+        +'<td><span class="badge-rec '+covRecClass(r[3])+'">'+r[3]+'</span></td>'
+        +'<td class="cov-cns">'+(r[4]||'—')+'</td>'
+        +'<td class="num">'+covBRL(r[5])+'</td>'
+        +'<td class="num" style="color:var(--yellow)">'+covBRL(r[6])+'</td>'
+        +'<td class="num">'+covPct(r[7],true)+'</td>'
+        +'<td class="num">'+covPct(r[8],false)+'</td>'
+        +'<td class="num" style="color:#c0c0c0">'+(r[9]==null||isNaN(r[9])?'—':r[9].toFixed(1).replace('.',','))+'</td>'
+        +'<td class="num">'+covPct(r[10],true)+'</td></tr>';
+    });
+  });
+  document.getElementById('covTable').innerHTML=head+'<tbody>'+(body||'<tr><td colspan="9" style="text-align:center;color:#777;padding:20px">Nada encontrado.</td></tr>')+'</tbody>';
+  // toolbar de filtros
+  var tb=document.getElementById('covToolbar');
+  if(tb && !tb.dataset.built){
+    tb.dataset.built='1';
+    tb.innerHTML=[['todas','Todos ('+XPCOV.length+')'],['compra','Só Compra'],['cobertas','Com cobertura']]
+      .map(function(o){ return '<button class="cov-fbtn'+(o[0]==='todas'?' on':'')+'" data-cf="'+o[0]+'" onclick="covSetFiltro(this)">'+o[1]+'</button>'; }).join('');
+  }
+}
+function covSetFiltro(btn){
+  COV_FILTRO=btn.getAttribute('data-cf');
+  document.querySelectorAll('#covToolbar .cov-fbtn').forEach(function(b){ b.classList.toggle('on', b===btn); });
+  renderCov();
+}
+/* clicar num papel da cobertura: se tiver detalhe rico (ASSETS) abre; senão filtra a lista de cima */
+function covAbrir(tk){
+  var temDetalhe=ASSETS.some(function(a){ return a.tk===tk; });
+  if(temDetalhe){ openAsset(tk); }
+  else {
+    var q=document.getElementById('qrv'); if(q){ q.value=tk; renderRV(); }
+    document.querySelector('.panel[data-p="rv"] .rvtable').scrollIntoView({behavior:'smooth',block:'start'});
+  }
 }
 let currentAsset=null, currentPathObj=null;
 const STRUCT_IMG={};
@@ -1970,9 +2227,18 @@ function impXP(tk){
     var a=null;
     for(var i=0;i<ASSETS.length&&!a;i++)
       for(var j=0;j<alvos.length;j++) if(ASSETS[i].tk===alvos[j]){ a=ASSETS[i]; break; }
-    if(!a) return null;
-    var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
-    return {recom:a.recom||'—',alvo:a.alvo,pot:pot,setor:a.setor||null};
+    /* A cobertura oficial é o StockGuide (XPCOV). Ele tem prioridade para os
+       campos de cobertura; ASSETS é só o fallback (papéis fora do StockGuide,
+       ex.: ETFs e BDRs) e a fonte do preço ao vivo/detalhe rico. */
+    var cv=(typeof xpCov==='function')?xpCov(tk):null;
+    if(cv) return {recom:cv[3]||'—',alvo:cv[6],pot:cv[7],setor:cv[2]||(a?a.setor:null),
+                   cns:cv[4]||'', dy:cv[8], r1m:cv[10], fonte:'COV'};
+    if(a){
+      var pot=(a.alvo!=null&&a.preco)?((a.alvo/a.preco-1)*100):null;
+      return {recom:a.recom||'—',alvo:a.alvo,pot:pot,setor:a.setor||null,
+              cns:'', dy:null, r1m:null, fonte:'ASSETS'};
+    }
+    return null;
   }catch(e){ return null; }
 }
 /* Descobre o setor de um ativo importado:
@@ -2045,32 +2311,38 @@ function renderImported(aloc,srcName){
   }).join('');
 
   var comRec=0;
+  function _pctCell(v,cor){
+    if(v==null||isNaN(v)) return '<td class="num" style="color:#777">—</td>';
+    var c=cor?(v>=0?'var(--green)':'var(--red)'):'#c9c9c9';
+    return '<td class="num" style="color:'+c+'">'+(v>=0?'+':'')+v.toFixed(1).replace('.',',')+'%</td>';
+  }
   function linhaAtivo(o,cor){ var a=o.a;
     var info=impXP(a[0]);
-    if(info && info.recom && info.recom!=='—') comRec++;
+    if(info && info.recom && info.recom!=='—' && info.recom!=='Sem cobertura') comRec++;
     var pct=total?(a[1]/total*100):0;
-    var rec=info?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
+    var rec=(info&&info.recom&&info.recom!=='—')?('<span class="badge-rec '+recClass(info.recom)+'">'+info.recom+'</span>')
                 :'<span style="color:#777;font-size:11px">sem cobertura</span>';
-    var alvo=(info&&info.alvo!=null)?('R$ '+info.alvo.toFixed(2).replace('.',',')):'—';
-    var potTxt='—',potCor='#777';
-    if(info&&info.pot!=null){ potTxt=(info.pot>=0?'+':'')+info.pot.toFixed(0)+'%'; potCor=info.pot>=0?'var(--green)':'var(--red)'; }
+    var cns=(info&&info.cns)?('<span class="cov-cns">'+info.cns+'</span>'):'<span style="color:#777">—</span>';
     return '<tr><td style="font-weight:700"><span class="imp-dot" style="background:'+cor+'"></span>'+a[0]+'</td>'
       +'<td class="num">'+impBRL(a[1])+'</td>'
       +'<td class="num" style="color:#a2a2a2">'+pct.toFixed(1).replace('.',',')+'%</td>'
+      +'<td>'+cns+'</td>'
       +'<td>'+rec+'</td>'
-      +'<td class="num" style="color:var(--yellow)">'+alvo+'</td>'
-      +'<td class="num" style="color:'+potCor+'">'+potTxt+'</td></tr>';
+      +_pctCell(info?info.r1m:null,true)
+      +_pctCell(info?info.pot:null,true)+'</tr>';
   }
   var linhas=setores.map(function(sec){
     var sub=grupos[sec].reduce(function(t,o){ return t+o.a[1]; },0);
     var spct=total?(sub/total*100):0;
     var head='<tr class="imp-secrow"><td><span class="imp-dot" style="background:'+corSetor[sec]+'"></span>'+sec+'</td>'
-      +'<td class="num">'+impBRL(sub)+'</td><td class="num">'+spct.toFixed(1).replace('.',',')+'%</td><td colspan="3"></td></tr>';
+      +'<td class="num">'+impBRL(sub)+'</td><td class="num">'+spct.toFixed(1).replace('.',',')+'%</td><td colspan="4"></td></tr>';
     return head+grupos[sec].map(function(o){ return linhaAtivo(o,corSetor[sec]); }).join('');
   }).join('');
   document.getElementById('cartImpTable').innerHTML=
     '<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Ativo / Setor</th><th class="num">Posição</th><th class="num">%</th>'
-    +'<th>Recom. XP</th><th class="num">Alvo</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+    +'<th>Consenso</th><th>Recom. XP</th><th class="num">Ret. 1M</th><th class="num">Potencial</th></tr></thead><tbody>'+linhas+'</tbody></table></div>';
+  /* ===== Carteira sugerida: onde a XP indica sair/revisar, mostra a favorita do setor ===== */
+  try{ renderSugerida(aloc,setores,grupos,corSetor,total); }catch(e){ var cs=document.getElementById('cartSugerida'); if(cs) cs.innerHTML=''; }
 
   var extra='';
   if(aloc.__dup) extra+=' <span style="color:#a2a2a2">'+aloc.__dup+' linha(s) repetida(s) do arquivo foram ignoradas.</span>';
@@ -2082,6 +2354,46 @@ function renderImported(aloc,srcName){
   }
   msg.innerHTML='<span style="color:var(--green)">Importado: '+aloc.length+' ativos · '+impBRL(total)+'.</span>'
     +' <span style="color:#a2a2a2">'+comRec+' com recomendação da XP.</span>'+extra;
+}
+/* Carteira sugerida (à la aba "Recomendacao" do StockGuide):
+   para cada papel que NÃO é Compra, aponta a favorita do setor (maior potencial
+   com recomendação de Compra). Papéis já recomendados como Compra são mantidos. */
+function renderSugerida(aloc,setores,grupos,corSetor,total){
+  var host=document.getElementById('cartSugerida'); if(!host) return;
+  var manter=[], trocar=[];
+  aloc.forEach(function(a){
+    var info=impXP(a[0]);
+    var sec=impSetorDe(a[0]);
+    var rec=info?info.recom:null;
+    if(rec==='Compra'){ manter.push({tk:a[0],val:a[1],sec:sec,info:info}); return; }
+    /* sugere a favorita do setor, se houver e se não for o próprio papel */
+    var fav=(typeof xpFavoritaSetor==='function')?xpFavoritaSetor(sec):null;
+    trocar.push({tk:a[0],val:a[1],sec:sec,info:info,fav:(fav&&fav[0]!==a[0])?fav:null});
+  });
+  var h='<div class="section-label" style="margin:6px 0 12px"><span class="dot"></span><span>CARTEIRA SUGERIDA</span><span class="ln"></span></div>';
+  h+='<p class="sub" style="margin-bottom:12px">Com base na cobertura da Mesa RV XP: mantemos os papéis com recomendação de <b>Compra</b> e, onde a XP está Neutra, em revisão ou sem cobertura, sugerimos a <b>favorita do setor</b> (maior potencial com recomendação de compra).</p>';
+  h+='<div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Papel atual</th><th>Setor</th><th>Recom. XP</th><th class="num">Posição</th><th>Sugestão</th><th class="num">Pot. sugerido</th></tr></thead><tbody>';
+  function recBadge(r){ return (r&&r!=='—')?'<span class="badge-rec '+recClass(r)+'">'+r+'</span>':'<span style="color:#777;font-size:11px">sem cobertura</span>'; }
+  // mantidos primeiro
+  manter.forEach(function(m){
+    h+='<tr><td style="font-weight:700">'+m.tk+'</td><td style="color:#bdbdbd">'+m.sec+'</td>'
+      +'<td>'+recBadge(m.info?m.info.recom:null)+'</td>'
+      +'<td class="num">'+impBRL(m.val)+'</td>'
+      +'<td><span style="color:var(--green)">✔ Manter</span></td><td class="num" style="color:#777">—</td></tr>';
+  });
+  trocar.forEach(function(t){
+    var sug, pot;
+    if(t.fav){ sug='<b style="color:var(--yellow)">'+t.fav[0]+'</b> <span style="color:#9a9a9a;font-size:11px">'+(t.fav[1]||'')+'</span>';
+               pot=(t.fav[7]!=null&&!isNaN(t.fav[7]))?('<span style="color:var(--green)">+'+t.fav[7].toFixed(1).replace('.',',')+'%</span>'):'—'; }
+    else { sug='<span style="color:#9a9a9a">Sem favorita no setor</span>'; pot='<span style="color:#777">—</span>'; }
+    h+='<tr><td style="font-weight:700">'+t.tk+'</td><td style="color:#bdbdbd">'+t.sec+'</td>'
+      +'<td>'+recBadge(t.info?t.info.recom:null)+'</td>'
+      +'<td class="num">'+impBRL(t.val)+'</td>'
+      +'<td>'+sug+'</td><td class="num">'+pot+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<p class="note-inline" style="margin-top:8px">Sugestão automática a partir da cobertura da XP — ponto de partida para a conversa, não recomendação personalizada. Avaliar suitability, liquidez e objetivos do cliente.</p>';
+  host.innerHTML=h;
 }
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
@@ -3049,6 +3361,7 @@ if(typeof window.togglePk==='function'){
 
 /* ================= inicialização / lazy por aba ================= */
 function boot(){
+  try{ if(typeof renderCov==='function') renderCov(); }catch(e){}
   injectRVButton();
   injectCmpStatus();
   /* liga os botões de atualizar. (Eles existiam no HTML com id, mas o clique
@@ -3072,6 +3385,7 @@ function boot(){
       if(k==='mercados'&&!MKT_LOADED) loadMercados();
       if(k==='noticias'&&!NEWS_LOADED) loadNoticias();
       if(k==='morning'&&!MC_LOADED) loadMorning();
+      if(k==='rv'){ try{ renderCov(); }catch(e){} }
       if(k==='comparador') ensureCmp();
     },60);
   },true);
