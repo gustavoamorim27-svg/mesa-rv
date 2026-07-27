@@ -4083,9 +4083,30 @@ function uuAbrir(id){
   document.getElementById('uuOverlay').style.display='flex';
 }
 function uuFechar(){ document.getElementById('uuOverlay').style.display='none'; UU_ATUAL=null; uuRender(); }
-function uuEditNome(v){ var a=uuGet(UU_ATUAL); if(!a) return; a.nome=v; uuSave();
+function uuEditNome(v){
+  var a=uuGet(UU_ATUAL); if(!a) return;
+  var antigo=(a.nome||'').trim();
+  a.nome=v;
+  /* Assessores vindos de Líderes e Times têm o nome controlado por lá (a sync
+     casa por nome). Se renomear só aqui, a sync recria o antigo (duplica) e o
+     renomeado some. Então propagamos o novo nome para a linha de Líderes. */
+  try{
+    if(typeof RC_GROUPS!=='undefined' && Array.isArray(RC_GROUPS)){
+      var achou=false;
+      for(var i=0;i<RC_GROUPS.length && !achou;i++){
+        var rows=RC_GROUPS[i].rows||[];
+        for(var j=0;j<rows.length;j++){
+          var casaId = a.rcId && rows[j].id===a.rcId;
+          var casaNome = !a.rcId && antigo && (rows[j].label||'').trim().toLowerCase()===antigo.toLowerCase();
+          if(casaId || casaNome){ rows[j].label=v; if(!a.rcId) a.rcId=rows[j].id; achou=true; if(typeof rcSave==='function') rcSave(); break; }
+        }
+      }
+    }
+  }catch(e){}
+  uuSave();
   var k=uuHideKey(v); if(k && UU_HIDE[k]){ delete UU_HIDE[k]; uuHideSave(); }   /* renomear/digitar traz de volta */
-  var fa=document.getElementById('uuMFoto'); if(!a.foto) fa.textContent=uuIniciais(a.nome); }
+  var fa=document.getElementById('uuMFoto'); if(!a.foto) fa.textContent=uuIniciais(a.nome);
+}
 function uuTrocaFoto(){ document.getElementById('uuFotoInput').click(); }
 function uuFotoFile(ev){
   var f=ev.target.files[0]; var a=uuGet(UU_ATUAL); if(!f||!a) return;
