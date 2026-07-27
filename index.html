@@ -3943,9 +3943,14 @@ if(typeof window.togglePk==='function'){
    modal com histórico de 1:1 e formulário para registrar um novo (meta anterior
    atingida?, receita da semana, alocação, anotações). Salvo no navegador. */
 var UU_LS='mesaUmUm';
+var UU_HIDE_LS='mesaUmUmHide';
 var UU=[];
+var UU_HIDE={};   /* nomes (lowercase) removidos à mão — a sync não os recria */
+function uuHideKey(n){ return String(n||'').trim().toLowerCase(); }
+function uuHideLoad(){ try{ var d=JSON.parse(localStorage.getItem(UU_HIDE_LS)||'{}'); if(d&&typeof d==='object') UU_HIDE=d; }catch(e){ UU_HIDE={}; } }
+function uuHideSave(){ try{ localStorage.setItem(UU_HIDE_LS, JSON.stringify(UU_HIDE)); }catch(e){} }
 var UU_ATUAL=null;
-function uuLoad(){ try{ var d=JSON.parse(localStorage.getItem(UU_LS)||'[]'); if(Array.isArray(d)) UU=d; }catch(e){ UU=[]; } }
+function uuLoad(){ try{ var d=JSON.parse(localStorage.getItem(UU_LS)||'[]'); if(Array.isArray(d)) UU=d; }catch(e){ UU=[]; } uuHideLoad(); }
 function uuSave(){ try{ localStorage.setItem(UU_LS, JSON.stringify(UU)); }catch(e){} }
 function uuId(){ return 'a'+Date.now()+Math.floor(Math.random()*1000); }
 function uuIniciais(nome){ var p=String(nome||'').trim().split(/\s+/); if(!p[0]) return '?'; return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
@@ -3988,6 +3993,7 @@ function uuSyncLideres(){
     }); });
     function achar(k){ for(var i=0;i<UU.length;i++){ if((UU[i].nome||'').trim().toLowerCase()===k) return UU[i]; } return null; }
     Object.keys(ativos).forEach(function(k){
+      if(UU_HIDE[k]) return;   /* assessor removido à mão: não recriar */
       var info=ativos[k], a=achar(k);
       if(a){ a.nome=info.nome; a.time=info.time; if(info.rcId) a.rcId=info.rcId; a.deLideres=true; }
       else UU.push({id:uuId(), rcId:info.rcId, nome:info.nome, time:info.time, foto:null, sessoes:[], deLideres:true});
@@ -4078,6 +4084,7 @@ function uuAbrir(id){
 }
 function uuFechar(){ document.getElementById('uuOverlay').style.display='none'; UU_ATUAL=null; uuRender(); }
 function uuEditNome(v){ var a=uuGet(UU_ATUAL); if(!a) return; a.nome=v; uuSave();
+  var k=uuHideKey(v); if(k && UU_HIDE[k]){ delete UU_HIDE[k]; uuHideSave(); }   /* renomear/digitar traz de volta */
   var fa=document.getElementById('uuMFoto'); if(!a.foto) fa.textContent=uuIniciais(a.nome); }
 function uuTrocaFoto(){ document.getElementById('uuFotoInput').click(); }
 function uuFotoFile(ev){
@@ -4118,7 +4125,8 @@ function uuEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</
 function uuDelSessao(i){ var a=uuGet(UU_ATUAL); if(!a||!a.sessoes) return; a.sessoes.splice(i,1); uuSave(); uuAbrir(a.id); }
 function uuRemoverAssessor(){
   var a=uuGet(UU_ATUAL); if(!a) return;
-  if(!confirm('Remover o assessor '+(a.nome||'')+' e todo o histórico de 1:1?')) return;
+  if(!confirm('Remover o assessor '+(a.nome||'')+' e todo o histórico de 1:1?\n\n(Se ele vier de Líderes e Times, some daqui mas continua lá. Para trazê-lo de volta, use "+ Assessor" e digite o mesmo nome.)')) return;
+  var k=uuHideKey(a.nome); if(k){ UU_HIDE[k]=1; uuHideSave(); }
   UU=UU.filter(function(x){ return x.id!==a.id; }); uuSave(); uuFechar();
 }
 uuLoad();
