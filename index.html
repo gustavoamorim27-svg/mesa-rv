@@ -452,6 +452,50 @@ body{font-family:'Manrope',sans-serif;background:var(--black);color:var(--white)
 .xls .tot td{background:rgba(255,199,0,.10);font-family:'Sora';font-weight:700;color:var(--yellow);font-size:11px;padding:7px 8px;text-align:right;}
 .xls .tot .rlabel{background:rgba(255,199,0,.06);color:var(--yellow);text-align:left;}
 .xls .cur{color:#aaaaaa;font-size:10px;padding-left:6px;}
+
+/* ===== Estudo (PDF) — layout de relatório, cores XP (preto + amarelo) ===== */
+#estudoReport{display:none}
+body.est-open{overflow:hidden}
+body.est-open #estudoReport{display:block;position:fixed;inset:0;z-index:12000;background:#3a3a3c;overflow:auto;padding:24px 0 60px}
+.est-bar{position:sticky;top:0;display:flex;gap:8px;align-items:center;justify-content:center;padding:12px;margin:-24px 0 22px;background:rgba(15,15,15,.94);backdrop-filter:blur(4px);z-index:2}
+.est-barinfo{color:#c8c8c8;font-size:12px;margin-left:6px}
+.est-doc{max-width:820px;margin:0 auto;background:#fff;color:#1a1a1a;border-radius:5px;box-shadow:0 10px 44px rgba(0,0,0,.45);font-family:'Manrope',Arial,sans-serif;line-height:1.62;overflow:hidden}
+/* capa preta com faixa amarela XP */
+.est-cover{background:#0a0a0a;color:#fff;padding:48px 56px 40px;position:relative}
+.est-cover::before{content:'';position:absolute;left:0;top:0;bottom:0;width:8px;background:#FFC700}
+.est-brand{display:flex;align-items:center;gap:10px;font-family:'Sora',Arial;font-weight:800;font-size:15px;letter-spacing:.5px}
+.est-brand .b1{color:#fff}.est-brand .b2{color:#FFC700}
+.est-kick{font-family:'Sora',Arial;font-size:11px;font-weight:800;letter-spacing:2px;color:#FFC700;text-transform:uppercase;margin-top:26px}
+.est-cover h1{font-family:'Sora',Arial;font-size:34px;line-height:1.15;margin:8px 0 14px;color:#fff;font-weight:800}
+.est-date{color:#c9c9c9;font-size:13px;text-transform:capitalize}
+.est-cover .est-meta{margin-top:18px;padding-top:16px;border-top:1px solid #2a2a2a;color:#9a9a9a;font-size:12px}
+.est-body{padding:36px 56px 30px}
+.est-sec{margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid #eee}
+.est-sec:last-of-type{border-bottom:none}
+.est-src{display:inline-block;font-family:'Sora',Arial;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#0a0a0a;background:#FFC700;padding:3px 10px;border-radius:3px}
+.est-sec h2{font-family:'Sora',Arial;font-size:20px;margin:11px 0 8px;color:#0a0a0a;line-height:1.28;font-weight:800;border-left:3px solid #FFC700;padding-left:11px}
+.est-url{margin:0 0 13px 14px}
+.est-url a{color:#0a6cff;font-size:11.5px;word-break:break-all;text-decoration:none}
+.est-lead{font-size:15px;font-weight:600;color:#2a2a2a;background:#fffdf3;border-left:3px solid #FFC700;padding:10px 14px;border-radius:0 6px 6px 0;margin:0 0 13px}
+.est-doc p{margin:0 0 11px;font-size:13.5px;color:#2c2c2c}
+.est-body h2.est-secttl{font-size:14px}
+.est-warn{color:#8a5200;background:#fff7e6;border:1px solid #ffe1a6;border-radius:6px;padding:10px 13px;font-size:13px}
+.est-more{color:#999;font-style:italic;font-size:12.5px}
+.est-foot{background:#0a0a0a;color:#8a8a8a;font-size:10.5px;padding:16px 56px;line-height:1.5}
+.est-foot b{color:#FFC700}
+@media print{
+  @page{margin:14mm}
+  body.est-open>*{display:none !important}
+  body.est-open #estudoReport{display:block !important;position:static;background:#fff;padding:0;overflow:visible}
+  #estudoReport .est-bar{display:none !important}
+  .est-doc{box-shadow:none;max-width:none;margin:0;border-radius:0}
+  .est-cover{padding:26px 30px 24px}
+  .est-cover h1{font-size:28px}
+  .est-body{padding:26px 30px}
+  .est-foot{padding:14px 30px}
+  .est-sec{page-break-inside:avoid}
+  .est-cover{page-break-after:avoid}
+}
 </style>
 </head>
 <body>
@@ -922,10 +966,12 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
           <button class="btn primary" onclick="addLink()">+ Add</button>
         </div>
         <div id="lkList" class="lk-list"></div>
-        <div style="display:flex;gap:8px;margin-top:14px">
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn primary" id="btnEstudo" onclick="gerarEstudo()">Gerar estudo (PDF)</button>
           <button class="btn" onclick="copyLinks()">Copiar links</button>
           <button class="btn" onclick="clearLinks()">Limpar</button>
         </div>
+        <div id="estMsg" class="sub" style="margin-top:10px"></div>
       </div>
       <div class="card">
         <h3>Resumo <span class="chip-tag" style="margin-left:6px">COLE AQUI</span></h3>
@@ -943,7 +989,7 @@ Postos esses fatos, gostaríamos de reafirmar sua ciência em relação à aloca
     <div class="grid g-3">
       <div class="card"><h3>Comparador de ativos</h3><div class="sub">Ações × FIIs × CDI</div><div style="margin-top:14px"><button class="btn" onclick="document.querySelectorAll('.tab')[2].click()">Abrir</button></div></div>
       <div class="card"><h3>Simulador de patrimônio</h3><div class="sub">Projeção 5 / 10 anos</div><div style="margin-top:14px"><span class="chip-tag">EM BREVE</span></div></div>
-      <div class="card"><h3>Gerador de material</h3><div class="sub">PDF para cliente</div><div style="margin-top:14px"><span class="chip-tag">EM BREVE</span></div></div>
+      <div class="card"><h3>Gerador de material</h3><div class="sub">PDF de estudo a partir dos links</div><div style="margin-top:14px"><button class="btn" onclick="gerarEstudo()">Gerar estudo</button></div></div>
     </div>
   </div>
 
@@ -2089,6 +2135,67 @@ function addLink(){const i=document.getElementById('lkInput');const v=(i.value||
 function rmLink(i){LINKS.splice(i,1);renderLinks();}
 function clearLinks(){LINKS=[];renderLinks();}
 function copyLinks(){const t=LINKS.join('\n');navigator.clipboard&&navigator.clipboard.writeText(t);}
+/* ===== Gerador de estudo (PDF) a partir dos links ==========================
+   Puxa o conteúdo de cada link pela cadeia de proxies e monta um relatório
+   imprimível (Salvar como PDF). Não resume com IA — compila o conteúdo e
+   inclui, no topo, o resumo que você tiver colado no campo ao lado. */
+function estHost(u){ try{ return (new URL(u)).hostname.replace(/^www\./,''); }catch(e){ return u; } }
+function estEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function estTituloEstudo(itens){
+  for(var i=0;i<itens.length;i++){ if(itens[i].ok && itens[i].title) return itens[i].title.slice(0,90); }
+  return 'Compilado de Estudo';
+}
+async function gerarEstudo(){
+  var msg=document.getElementById('estMsg');
+  if(!LINKS.length){ if(msg) msg.innerHTML='<span style="color:var(--yellow)">Adicione ao menos um link acima.</span>'; return; }
+  if(!(window.MesaLive&&MesaLive.pageText)){ if(msg) msg.innerHTML='<span style="color:var(--red)">Camada de dados não carregou — recarregue a página.</span>'; return; }
+  var btn=document.getElementById('btnEstudo'); if(btn){ btn.disabled=true; btn.textContent='Gerando…'; }
+  if(msg) msg.innerHTML='<span style="color:#9a9a9a">Puxando o conteúdo dos '+LINKS.length+' link(s)…</span>';
+  var itens=[];
+  for(var i=0;i<LINKS.length;i++){
+    if(msg) msg.innerHTML='<span style="color:#9a9a9a">Lendo '+(i+1)+'/'+LINKS.length+': '+estEsc(estHost(LINKS[i]))+'…</span>';
+    var r=await MesaLive.pageText(LINKS[i]); itens.push(r||{url:LINKS[i],ok:false});
+  }
+  var resumo=(document.getElementById('resumoArea')||{}).value||'';
+  var hoje=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  var okN=itens.filter(function(x){return x.ok;}).length;
+  var h='<div class="est-doc">';
+  h+='<div class="est-cover"><div class="est-brand"><span class="b1">MESA</span> <span class="b2">RV</span> <span class="b1">B2C</span></div>'
+    +'<div class="est-kick">Estudo de Mercado</div>'
+    +'<h1>'+estEsc(estTituloEstudo(itens))+'</h1>'
+    +'<div class="est-date">'+estEsc(hoje)+'</div>'
+    +'<div class="est-meta">'+LINKS.length+' fonte(s) · '+okN+' lida(s) automaticamente · Guilherme Amorim · Renda Variável</div></div>';
+  h+='<div class="est-body">';
+  if(resumo && resumo.trim()){
+    h+='<div class="est-sec"><div class="est-src">Resumo</div><h2>Visão geral</h2>'+resumo.trim().split(/\n{2,}/).map(function(p){return '<p>'+estEsc(p).replace(/\n/g,'<br>')+'</p>';}).join('')+'</div>';
+  }
+  itens.forEach(function(it,idx){
+    h+='<div class="est-sec"><div class="est-src">Fonte '+(idx+1)+' · '+estEsc(estHost(it.url))+'</div>';
+    h+='<h2>'+estEsc(it.title||estHost(it.url))+'</h2>';
+    h+='<div class="est-url"><a href="'+estEsc(it.url)+'">'+estEsc(it.url)+'</a></div>';
+    if(!it.ok){ h+='<p class="est-warn">Não consegui ler o conteúdo desta página automaticamente (pode ter paywall, login ou carregar por JavaScript). Ela fica como referência — abra pelo link acima.</p>'; }
+    else {
+      if(it.desc) h+='<p class="est-lead">'+estEsc(it.desc)+'</p>';
+      var paras=(it.paras||[]).slice(0,16);
+      if(!paras.length && !it.desc) h+='<p class="est-warn">Sem texto extraível — abra pelo link.</p>';
+      paras.forEach(function(p){ h+='<p>'+estEsc(p)+'</p>'; });
+      if((it.paras||[]).length>16) h+='<p class="est-more">… conteúdo completo no link.</p>';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="est-foot"><b>Mesa RV B2C</b> · Compilado automático a partir dos links, para apoio de estudo do assessor. Não substitui os relatórios oficiais do Research da XP — verifique sempre as fontes originais. Gerado em '+estEsc(hoje)+'.</div>';
+  h+='</div>';
+  var box=document.getElementById('estudoReport');
+  if(!box){ box=document.createElement('div'); box.id='estudoReport'; document.body.appendChild(box); }
+  box.innerHTML='<div class="est-bar"><button class="btn primary" onclick="window.print()">Salvar como PDF / Imprimir</button>'
+    +'<button class="btn" onclick="fecharEstudo()">Fechar</button>'
+    +'<span class="est-barinfo">'+okN+'/'+LINKS.length+' fontes lidas</span></div>'+h;
+  box.style.display='block'; document.body.classList.add('est-open');
+  if(btn){ btn.disabled=false; btn.textContent='Gerar estudo (PDF)'; }
+  if(msg) msg.innerHTML='<span style="color:var(--green)">Estudo gerado ('+okN+'/'+LINKS.length+' fontes lidas). Clique em Salvar como PDF.</span>';
+}
+function fecharEstudo(){ var b=document.getElementById('estudoReport'); if(b) b.style.display='none'; document.body.classList.remove('est-open'); }
 document.getElementById('lkInput').addEventListener('keydown',e=>{if(e.key==='Enter')addLink();});
 renderLinks();
 
@@ -3284,6 +3391,23 @@ async function pool(items,n,fn){
   return res;
 }
 function ent(s){ var d=document.createElement('textarea'); d.innerHTML=s; return d.value; }
+/* Lê uma página pela cadeia de proxies e extrai texto para o estudo.
+   Devolve {url, ok, title, desc, paras[]}. Sites com paywall/JS podem falhar. */
+async function pageText(url){
+  try{
+    var t=await viaProxy(url,function(x){ return x && x.length>150; },11000);
+    if(!t) return {url:url, ok:false};
+    var clean=String(t).replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<!--[\s\S]*?-->/g,' ');
+    var title=''; var m=clean.match(/<title[^>]*>([\s\S]*?)<\/title>/i); if(m) title=ent(m[1].replace(/<[^>]+>/g,'')).replace(/\s+/g,' ').trim();
+    var desc=''; var d=clean.match(/<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]*content=["']([^"']+)["']/i); if(d) desc=ent(d[1]).replace(/\s+/g,' ').trim();
+    var paras=[], seen={}, re=/<(?:p|h2|h3|li|blockquote)[^>]*>([\s\S]*?)<\/(?:p|h2|h3|li|blockquote)>/gi, pm;
+    while((pm=re.exec(clean)) && paras.length<80){
+      var x=ent(pm[1].replace(/<[^>]+>/g,'')).replace(/\s+/g,' ').trim();
+      if(x.length>55 && !seen[x]){ seen[x]=1; paras.push(x); }
+    }
+    return {url:url, ok:true, title:title, desc:desc, paras:paras};
+  }catch(e){ return {url:url, ok:false}; }
+}
 
 /* ---------- fontes ---------- */
 /* Último provento (dividendo) de um FII via Yahoo events=div.
@@ -3549,7 +3673,7 @@ function mcSemanas(xml){
   mcPintaResumo();
 }
 /* O resumo dos últimos 5 é gravado no arquivo pela tarefa de quinta-feira. */
-var MC_RESUMO5={"data":"Resumo de 17/07 a 23/07/2026 · 5 morning calls","html":"<p style=\"margin-bottom:10px\"><b style=\"color:var(--yellow)\">Mercados:</b> A semana começou sob a pressão do tarifaço e terminou com forte alívio. Depois de <b>cinco</b> pregões seguidos no vermelho, o <b>Ibovespa</b> disparou <b>+2,44%</b> na quarta (22/07), aos <b>~177.547</b> pontos — a virada veio com a volta do apetite do estrangeiro e o petróleo em alta, com <b>VALE3</b>, <b>PETR4</b> e <b>WEGE3</b> puxando o índice.</p>\n<p style=\"margin-bottom:10px\"><b style=\"color:var(--yellow)\">Brasil / Agenda:</b> O fio condutor dos cinco dias foi a tarifa de <b>25%</b> dos EUA sobre importações brasileiras, que entrou em vigor em <b>22/07</b>. A lista de exceções veio mais ampla que o esperado — os frigoríficos foram, em boa parte, poupados —, mas o agro seguiu em alerta, com etanol, máquinas agrícolas, papel e aço no radar. A pressão inicial (queda de ~1% em 17/07) foi cedendo ao longo da semana.</p>\n<p style=\"margin-bottom:10px\"><b style=\"color:var(--yellow)\">Global:</b> O foco externo migrou da economia americana (tema do call de 20/07) para o petróleo. A escalada entre <b>EUA e Irã</b> empurrou o <b>Brent</b> para perto de <b>US$ 95</b>, com a commodity subindo mais de <b>3%</b> e sustentando as petroleiras — fator decisivo para virar o humor do Ibovespa na quarta.</p>\n<p style=\"margin-bottom:10px\"><b style=\"color:var(--yellow)\">Destaques de empresas:</b> Com a temporada do <b>2T26</b> a todo vapor, os bancos dominaram a pauta (21/07): a XP elegeu o <b>Bradesco (BBDC4)</b> como o destaque do trimestre entre os grandes, à frente de <b>ITUB4</b> e <b>SANB11</b>. A <b>VALE3</b> animou o índice com produção acima do esperado e a <b>WEGE3</b> saltou no dia do balanço; o setor imobiliário (22/07) também entrou no radar de resultados.</p>\n<p style=\"margin-bottom:10px\"><b style=\"color:var(--yellow)\">O que ficou para a semana:</b> A partir de 23/07, o <b>Expert XP 2026</b> (23 a 25/07, São Paulo Expo) assumiu o centro das atenções, com <b>Fernando Ferreira</b> e o time de estratégia reforçando uma visão construtiva para a bolsa brasileira, mesmo após revisarem o alvo do Ibovespa refletindo juros reais longos mais altos. No horizonte, os balanços de <b>Bradesco</b> e <b>Vale</b> (30/07) e a leitura dos primeiros números do 2T26.</p>"};
+var MC_RESUMO5=null;
 function mcPintaResumo(){
   if(!MC_RESUMO5) return;
   var d=document.getElementById('mc5Data'), r=document.getElementById('mc5Resumo');
@@ -3834,28 +3958,46 @@ function uuMetaLabel(v){ return v?('Meta anterior: '+(v==='Parcial'?'Parcial':v)
    sincronizado (por id estável da linha, sobrevive a renome). Cria os que faltam,
    atualiza nome/time, e remove os sincronizados que sumiram — preservando os que
    já têm 1:1 registrado. Assessores adicionados à mão (sem rcId) não são tocados. */
+/* Remove nomes repetidos SEM preenchimento: se um nome aparece mais de uma vez,
+   mantém quem tem 1:1 registrado ou foto e descarta as cópias vazias; se todas
+   estiverem vazias, mantém apenas uma. Nomes únicos não são tocados. */
+function uuDedup(){
+  var porNome={};
+  UU.forEach(function(a){ var k=(a.nome||'').trim().toLowerCase(); if(!k) return; (porNome[k]=porNome[k]||[]).push(a); });
+  var rem={};
+  Object.keys(porNome).forEach(function(k){
+    var arr=porNome[k]; if(arr.length<2) return;
+    var cheios=arr.filter(function(a){ return (a.sessoes&&a.sessoes.length>0)||a.foto; });
+    if(cheios.length){ arr.forEach(function(a){ if(cheios.indexOf(a)<0) rem[a.id]=1; }); }
+    else { arr.slice(1).forEach(function(a){ rem[a.id]=1; }); }
+  });
+  var mudou=false;
+  UU=UU.filter(function(a){ if(rem[a.id]){ mudou=true; return false; } return true; });
+  return mudou;
+}
+/* Sincroniza os integrantes de Líderes e Times POR NOME (não por linha), então
+   a mesma pessoa em times diferentes não vira dois assessores. */
 function uuSyncLideres(){
   try{
-    if(typeof RC_GROUPS==='undefined'||!Array.isArray(RC_GROUPS)) return;
-    var ativos={};
+    if(typeof RC_GROUPS==='undefined'||!Array.isArray(RC_GROUPS)){ uuDedup(); uuSave(); return; }
+    var ativos={};   /* nomeLower -> {nome, time, rcId} (1ª ocorrência) */
     RC_GROUPS.forEach(function(gr){ (gr.rows||[]).forEach(function(row){
-      var nome=(row.label||'').trim(); if(!nome||!row.id) return;
-      ativos[row.id]={nome:nome, time:(gr.nome||'').trim()};
+      var nome=(row.label||'').trim(); if(!nome) return;
+      var k=nome.toLowerCase();
+      if(!ativos[k]) ativos[k]={nome:nome, time:(gr.nome||'').trim(), rcId:row.id||null};
     }); });
-    Object.keys(ativos).forEach(function(rcId){
-      var info=ativos[rcId], a=null;
-      for(var i=0;i<UU.length;i++){ if(UU[i].rcId===rcId){ a=UU[i]; break; } }
-      if(!a){ /* casa por nome com um assessor manual já existente, pra não duplicar */
-        for(var j=0;j<UU.length;j++){ if(!UU[j].rcId && (UU[j].nome||'').trim().toLowerCase()===info.nome.toLowerCase()){ a=UU[j]; a.rcId=rcId; break; } }
-      }
-      if(a){ a.nome=info.nome; a.time=info.time; a.deLideres=true; }
-      else UU.push({id:uuId(), rcId:rcId, nome:info.nome, time:info.time, foto:null, sessoes:[], deLideres:true});
+    function achar(k){ for(var i=0;i<UU.length;i++){ if((UU[i].nome||'').trim().toLowerCase()===k) return UU[i]; } return null; }
+    Object.keys(ativos).forEach(function(k){
+      var info=ativos[k], a=achar(k);
+      if(a){ a.nome=info.nome; a.time=info.time; if(info.rcId) a.rcId=info.rcId; a.deLideres=true; }
+      else UU.push({id:uuId(), rcId:info.rcId, nome:info.nome, time:info.time, foto:null, sessoes:[], deLideres:true});
     });
-    /* remove os que vieram de Líderes e sumiram de lá — só se não tiverem 1:1 */
+    /* sincronizado que sumiu de Líderes (por nome) — remove só se não tiver 1:1 */
     UU=UU.filter(function(a){
-      if(a.deLideres && a.rcId && !ativos[a.rcId]) return (a.sessoes&&a.sessoes.length>0);
+      if(a.deLideres){ var k=(a.nome||'').trim().toLowerCase(); if(k && !ativos[k]) return (a.sessoes&&a.sessoes.length>0); }
       return true;
     });
+    uuDedup();
     uuSave();
   }catch(e){}
 }
@@ -4024,7 +4166,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else boot();
 
 /* expõe para o console / depuração */
-window.MesaLive={ensureCmp:ensureCmp,CMPHIST:CMPHIST,loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,fiiDiv:fiiDiv,bcb:bcb,rss:rss,HIST:HIST};
+window.MesaLive={ensureCmp:ensureCmp,CMPHIST:CMPHIST,loadMercados:loadMercados,loadNoticias:loadNoticias,loadRV:loadRV,loadMorning:loadMorning,yChart:yChart,fiiDiv:fiiDiv,bcb:bcb,rss:rss,pageText:pageText,HIST:HIST};
 })();
 </script>
 
