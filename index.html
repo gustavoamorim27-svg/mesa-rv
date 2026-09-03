@@ -3680,6 +3680,11 @@ function mcPintaResumo(){
   if(d) d.textContent=MC_RESUMO5.data||'—';
   if(r) r.innerHTML=MC_RESUMO5.html||'';
 }
+/* O resumo nao depende do feed do YouTube: pinta assim que o DOM estiver pronto. */
+try{
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', mcPintaResumo); }
+  else { mcPintaResumo(); }
+}catch(e){}
 async function loadMorning(){
   var t=await viaProxy('https://www.youtube.com/feeds/videos.xml?playlist_id=PLMl5SicO7iPAblUrGoWYKJ1Gw7QDFkEZ8',
                        function(x){return x.indexOf('<entry')>=0;});
